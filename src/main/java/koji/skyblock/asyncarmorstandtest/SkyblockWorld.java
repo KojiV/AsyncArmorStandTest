@@ -38,7 +38,7 @@ public class SkyblockWorld extends KBase implements World {
         cantSeePets = new Set[] {
                 new HashSet<>(),
                 new HashSet<>()
-        };;
+        };
 
         worlds.put(world, this);
         //println("created new!");
