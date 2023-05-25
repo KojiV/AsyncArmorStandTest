@@ -41,7 +41,7 @@ public class SkyblockWorld extends KBase implements World {
         };;
 
         worlds.put(world, this);
-        println("created new!");
+        //println("created new!");
     }
 
     // Actual new code
@@ -55,8 +55,8 @@ public class SkyblockWorld extends KBase implements World {
         if (AsyncArmorStandTest.getCanSeeMap().get(p.getUniqueId())) {
             boo = canSeePets[num].remove(p);
         } else boo = cantSeePets[num].remove(p);
-        println("can from", canSeePets[num], getName());
-        println("can't from", cantSeePets[num], getName());
+        //println("can from", canSeePets[num], getName());
+        //println("can't from", cantSeePets[num], getName());
         return boo;
     }
 
@@ -65,8 +65,8 @@ public class SkyblockWorld extends KBase implements World {
         if (AsyncArmorStandTest.getCanSeeMap().get(p.getUniqueId())) {
             canSeePets[num].add(p);
         } else cantSeePets[num].add(p);
-        println("can changed", canSeePets[num], getName());
-        println("can't changed", cantSeePets[num], getName());
+        //println("can changed", canSeePets[num], getName());
+        //println("can't changed", cantSeePets[num], getName());
     }
 
     // Interface Stuff

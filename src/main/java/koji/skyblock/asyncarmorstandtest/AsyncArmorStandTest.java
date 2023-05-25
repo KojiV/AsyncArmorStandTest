@@ -2,7 +2,6 @@ package koji.skyblock.asyncarmorstandtest;
 
 import com.viaversion.viaversion.api.Via;
 import koji.developerkit.runnable.KRunnable;
-import koji.developerkit.utils.KStatic;
 import koji.developerkit.utils.SafeMap;
 import koji.developerkit.utils.xseries.XMaterial;
 import koji.skyblock.asyncarmorstandtest.armorstand.*;
@@ -143,10 +142,10 @@ public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
             };
 
             Set<Player>[] connectedPlayers = SkyblockWorld.getWorld(player.getWorld()).getCanSeePets();
-            KStatic.println(connectedPlayers[0],
+            /*KStatic.println(connectedPlayers[0],
                     connectedPlayers[1],
                     player.getWorld().getName()
-            );
+            );*/
             Set<Player> players = connectedPlayers[0];
             players.addAll(connectedPlayers[1]);
 
