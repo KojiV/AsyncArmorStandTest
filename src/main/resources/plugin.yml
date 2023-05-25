@@ -1,0 +1,7 @@
+name: AsyncArmorStandTest
+version: '${project.version}'
+main: koji.skyblock.asyncarmorstandtest.AsyncArmorStandTest
+depend: [ KojiDevKit, ProtocolLib ]
+commands:
+  test:
+    usage: tests stuff
