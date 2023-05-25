@@ -43,7 +43,7 @@ So from there you have two options:
 2. Use packets (I chose this)
 
 ## Packets
-# Basic Overview
+### Basic Overview
 Instead of teleporting with the Bukkit API, NMS packets are instead used to teleport the armor stand. To avoid reflection, an interface (UncollidibleArmorStand) is used to house each version's NMS, then it selects which implemented version interface to use based on the version of the server. Normally, the armor stand would just be summoned via the Bukkit API and then edited through packets, but instead they are spawned via packets as well (more information as to why is in the next section).
 
 The packets used are all variations of:
@@ -52,5 +52,9 @@ The packets used are all variations of:
 - PacketPlayOutEntityEquipment
 - PacketPlayOutEntityTeleport
 
-# 1.17+
-1.17 and any version above that is very pesky and annoying because of one reason:
+### 1.17+
+1.17 and any version above that is very pesky and annoying because of one reason: the package names are all identical. Because of this issue, compilers on compile time don't see anything wrong, but later down the time, the servers run into issues due to the differences in method names. To remedy this issue, I use reflection in the 1.17+ armor stand class, which was very annoying. 
+
+# Multiversion Stuff (ViaVersion)
+This was basically the main source of my annoyance towards everything, and I will explain why here.
+
