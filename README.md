@@ -55,6 +55,8 @@ The packets used are all variations of:
 ### 1.17+
 1.17 and any version above that is very pesky and annoying because of one reason: the package names are all identical. Because of this issue, compilers on compile time don't see anything wrong, but later down the time, the servers run into issues due to the differences in method names. To remedy this issue, I use reflection in the 1.17+ armor stand class, which was very annoying. 
 
-# Multiversion Stuff (ViaVersion)
-This was basically the main source of my annoyance towards everything, and I will explain why here.
+## Multiversion Stuff (ViaVersion)
+This was basically the main source of my annoyance towards everything, and I will explain why here. 
 
+### Overview
+Starting in 1.9, the way armor stands hold skulls changed, so the angle of the armor stands change between 1.8 and 1.9. To make the pet always show upright correctly, packets are used to spawn only for certain players rather than others. Here is what happens if the arm pose is universal:
