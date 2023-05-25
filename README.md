@@ -1,7 +1,7 @@
 # Asynchronous Armor Stand Testing
 Source Code for my testing of asynchronous Armor Stand movements.
 
-I whipped this up to originally test for Koji's Skyblock without having to compile the entirety of the plugin every time. Because of this, the code isn't of the highest quality, and there are things I did just to have myself the time and the headache. So take this code with a litte grain of salt.
+I whipped this up to originally test for Koji's Skyblock without having to compile the entirety of the plugin every time. Because of this, the code isn't of the highest quality, and there are things I did just to save myself the time and the headache. So take this code with a litte grain of salt.
 
 ## Why?
 By default, the easiest way to change the position of an entity is to teleport it. 
@@ -28,7 +28,7 @@ new BukkitRunnable() {
     @Override
     public void run() {
         // This will send the armorstand high into the sky.
-        armorStand.setVelocity(desiredLocation.subtract(currentLocation));
+        armorStand.setVelocity(desiredLocation.clone().subtract(currentLocation));
         desiredLocation.add(0, 0.2, 0);
     }
 }.runTaskTimer(plugin, 1L, 1L);
@@ -43,4 +43,14 @@ So from there you have two options:
 2. Use packets (I chose this)
 
 ## Packets
+# Basic Overview
+Instead of teleporting with the Bukkit API, NMS packets are instead used to teleport the armor stand. To avoid reflection, an interface (UncollidibleArmorStand) is used to house each version's NMS, then it selects which implemented version interface to use based on the version of the server. Normally, the armor stand would just be summoned via the Bukkit API and then edited through packets, but instead they are spawned via packets as well (more information as to why is in the next section).
 
+The packets used are all variations of:
+- PacketPlayOutSpawnEntityLiving
+- PacketPlayOutEntityMetadata
+- PacketPlayOutEntityEquipment
+- PacketPlayOutEntityTeleport
+
+# 1.17+
+1.17 and any version above that is very pesky and annoying because of one reason:
