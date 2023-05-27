@@ -39,6 +39,7 @@ public class SkyblockWorld extends KBase implements World {
                 new HashSet<>(),
                 new HashSet<>()
         };
+        allArmorStand = new HashSet<>();
 
         worlds.put(world, this);
         //println("created new!");
@@ -48,10 +49,17 @@ public class SkyblockWorld extends KBase implements World {
 
     @Getter private final Set<Player>[] canSeePets;
     @Getter private final Set<Player>[] cantSeePets;
+    @Getter private final Set<UncollidableArmorStand> allArmorStand;
 
     public boolean leftWorld(Player p) {
         int num = AsyncArmorStandTest.getCorrespondent().get(p.getUniqueId());
         boolean boo;
+        UncollidableArmorStand[] stands = AsyncArmorStandTest.getInstances().get(
+                p.getUniqueId()
+        ).getArmorStands();
+        world.getPlayers().forEach(player -> Arrays.stream(stands).forEach(a ->
+                AsyncArmorStandTest.getHider().hideEntity(player, a.getEntity())
+        ));
         if (AsyncArmorStandTest.getCanSeeMap().get(p.getUniqueId())) {
             boo = canSeePets[num].remove(p);
         } else boo = cantSeePets[num].remove(p);
@@ -62,11 +70,13 @@ public class SkyblockWorld extends KBase implements World {
 
     public void changedToWorld(Player p) {
         int num = AsyncArmorStandTest.getCorrespondent().get(p.getUniqueId());
+        println(p.getDisplayName(), num);
         if (AsyncArmorStandTest.getCanSeeMap().get(p.getUniqueId())) {
             canSeePets[num].add(p);
         } else cantSeePets[num].add(p);
-        //println("can changed", canSeePets[num], getName());
-        //println("can't changed", cantSeePets[num], getName());
+        allArmorStand.forEach(a -> a.spawn(Collections.singletonList(p)));
+        println("can 1.8", canSeePets[0], getName());
+        println("can 1.9", canSeePets[1], getName());
     }
 
     // Interface Stuff

@@ -30,16 +30,23 @@ public class UncollidableArmorStand_1_8 implements UncollidableArmorStand {
         }
         stand.setLocation(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
 
+        update(players);
         PacketPlayOutSpawnEntityLiving packet = new PacketPlayOutSpawnEntityLiving(stand);
         players.forEach(p -> ((CraftPlayer) p).getHandle().playerConnection.sendPacket(packet));
 
         return (LivingEntity) stand.getBukkitEntity();
     }
 
+    @Override
     public void update(Collection<Player> players, ItemStack[] stack) {
+        update(players, stack, stand.getDataWatcher());
+    }
+
+    @Override
+    public void update(Collection<Player> players, ItemStack[] stack, Object dataWatcher) {
         Packet<?>[] packets = new Packet[stack.length];
         packets[0] = new PacketPlayOutEntityMetadata(
-                stand.getId(), stand.getDataWatcher(), true
+                stand.getId(), (DataWatcher) dataWatcher, true
         );
         for(int i = 0; i < stack.length && i != 1; i++) {
             int index = i > 0 ? i - 1 : i;
@@ -63,4 +70,19 @@ public class UncollidableArmorStand_1_8 implements UncollidableArmorStand {
         return (ArmorStand) stand.getBukkitEntity();
     }
 
+    @Override
+    public void rotate(Collection<Player> players, float[][] rotations) {
+        DataWatcher watcher = new DataWatcher(stand);
+        // 11 = Head, 12 = Body, 13 = Left Arm, 14 = Right Arm, 15 = Left Leg, 16 = Right Leg
+        for(int i = 0; i < 6; i++) {
+            int dataIndex = 11 + i;
+
+            float[] array;
+            if(i >= rotations.length) array = new float[3];
+            else array = rotations[i];
+
+            watcher.a(dataIndex, new Vector3f(array[0], array[1], array[2]));
+        }
+        update(players, watcher);
+    }
 }

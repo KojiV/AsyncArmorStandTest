@@ -2,6 +2,7 @@ package koji.skyblock.asyncarmorstandtest;
 
 import com.viaversion.viaversion.api.Via;
 import koji.developerkit.runnable.KRunnable;
+import koji.developerkit.utils.KStatic;
 import koji.developerkit.utils.SafeMap;
 import koji.developerkit.utils.xseries.XMaterial;
 import koji.skyblock.asyncarmorstandtest.armorstand.*;
@@ -17,11 +18,8 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.util.EulerAngle;
 
-import java.util.HashMap;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 // TODO: Get rotation of the head to rotate around the stand, NOT the name tag.
 public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
@@ -58,13 +56,9 @@ public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
     // This is mainly used for adjusting the armor stand to line up with the name tag.
     // Desmos came in clutch here, I hate math
     static final double[] ADJUSTMENTS = { -0.17, -0.45 };
-    private static final EulerAngle[] ARM_ANGLES = {
-            new EulerAngle(0, Math.toRadians(40), 0),
-            new EulerAngle(
-                    Math.toRadians(311),
-                    Math.toRadians(44),
-                    Math.toRadians(356.5)
-            )
+    private static final float[][] ARM_ANGLES = {
+            { 0, 40f, 0 },
+            { 311f, 44f, 356.5f }
     };
 
     public static float getYaw(Player player, Location stand) {
@@ -75,7 +69,7 @@ public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
     }
 
     @Getter private static SafeMap<UUID, Integer> correspondent;
-    private static HashMap<UUID, PlayerInstance> instances;
+    @Getter private static HashMap<UUID, PlayerInstance> instances;
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent e) {
@@ -91,6 +85,7 @@ public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
     @EventHandler
     public void onPlayerLeave(PlayerQuitEvent e) {
         Player p = e.getPlayer();
+        instances.get(p.getUniqueId()).getRunnable().cancel();
         SkyblockWorld.getWorld(p.getWorld()).leftWorld(p);
     }
 
@@ -101,6 +96,22 @@ public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
         SkyblockWorld.getWorld(p.getWorld()).changedToWorld(p);
 
         instances.get(p.getUniqueId()).getRunnable().setWorld(SkyblockWorld.getWorld(p.getWorld()));
+    }
+
+    public static void toggleVisibility(Player p) {
+        toggleVisibility(p, !canSeeMap.get(p.getUniqueId()));
+    }
+
+    public static void toggleVisibility(Player p, boolean boo) {
+        canSeeMap.put(p.getUniqueId(), boo);
+        if(boo) {
+            SkyblockWorld.getWorld(p.getWorld()).getAllArmorStand().forEach(a -> a.spawn(
+                    Collections.singletonList(p), a.getEntity().getLocation()
+            ));
+        }
+        else SkyblockWorld.getWorld(p.getWorld()).getAllArmorStand().forEach(a ->
+                hider.hideEntity(p, a.getEntity())
+        );
     }
 
     public static UncollidableArmorStand getArmorStand() {
@@ -128,11 +139,16 @@ public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
         public PlayerInstance(Player p) {
             player = p;
             playerVersion = Via.getAPI().getPlayerVersion(p.getUniqueId()) <= 47 ? 0 : 1;
+            KStatic.println(playerVersion);
             armorStands = new UncollidableArmorStand[2];
             createArmorStands();
+            SkyblockWorld.getWorld(p.getWorld()).getAllArmorStand().addAll(
+                    new HashSet<>(Arrays.asList(armorStands))
+            );
 
             runnable = new PetStandRunnable(this);
             runnable.runTaskTimerAsynchronously(getMain(), 10L, 1L);
+            KStatic.println(playerVersion);
         }
 
         public void createArmorStands() {
@@ -146,8 +162,8 @@ public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
                     connectedPlayers[1],
                     player.getWorld().getName()
             );*/
-            Set<Player> players = connectedPlayers[0];
-            players.addAll(connectedPlayers[1]);
+            Set<Player> players = new HashSet<>(connectedPlayers[0]);
+            players.addAll(new HashSet<>(connectedPlayers[1]));
 
             ArmorStand armorStand = (ArmorStand) armorStands[0].spawn(
                     players, player.getLocation().add(
@@ -165,17 +181,25 @@ public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
 
             armorStand.setArms(true);
             armorStand.setGravity(false);
+            armorStand.setItemInHand(XMaterial.PLAYER_HEAD.parseItem());
             nameTag.setGravity(false);
             nameTag.setCustomNameVisible(false);
             armorStands[1].update(players, new ItemStack[6]);
 
             for(int i = 0; i < 2; i++) {
                 if (!connectedPlayers[i].isEmpty()) {
-                    armorStand.setRightArmPose(ARM_ANGLES[i]);
-                    armorStands[0].update(connectedPlayers[i], new ItemStack[]{
+                    armorStands[0].rotate(connectedPlayers[i], new float[][] {
+                            new float[3],
+                            new float[3],
+                            new float[3],
+                            ARM_ANGLES[i],
+                            new float[3],
+                            new float[3]
+                    });
+                    /*armorStands[0].update(connectedPlayers[i], new ItemStack[]{
                             XMaterial.PLAYER_HEAD.parseItem(), null, null,
                             null, null, null
-                    });
+                    });*/
                 }
             }
         }

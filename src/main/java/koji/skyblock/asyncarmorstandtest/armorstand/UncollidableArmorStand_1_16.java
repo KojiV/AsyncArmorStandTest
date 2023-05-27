@@ -41,9 +41,14 @@ public class UncollidableArmorStand_1_16 implements UncollidableArmorStand {
 
     @Override
     public void update(Collection<Player> players, ItemStack[] stack) {
+        update(players, stack, stand.getDataWatcher());
+    }
+
+    @Override
+    public void update(Collection<Player> players, ItemStack[] stack, Object dataWatcher) {
         Packet<?>[] packets = new Packet[2];
         packets[0] = new PacketPlayOutEntityMetadata(
-                stand.getId(), stand.getDataWatcher(), true
+                stand.getId(), (DataWatcher) dataWatcher, true
         );
         List<Pair<EnumItemSlot, net.minecraft.server.v1_16_R3.ItemStack>> list = new ArrayList<>();
         for (int i = 0; i < 6; i++) {
@@ -102,4 +107,23 @@ public class UncollidableArmorStand_1_16 implements UncollidableArmorStand {
         return (ArmorStand) stand.getBukkitEntity();
     }
 
+    @Override @SuppressWarnings("unchecked")
+    public void rotate(Collection<Player> players, float[][] rotations) {
+        DataWatcher data = stand.getDataWatcher();
+        DataWatcherObject<Vector3f>[] labels = new DataWatcherObject[] {
+                EntityArmorStand.b, // Head
+                EntityArmorStand.c, // Body
+                EntityArmorStand.d, // Left Arm
+                EntityArmorStand.e, // Right Arm
+                EntityArmorStand.f, // Left Leg
+                EntityArmorStand.g // Right Leg
+        };
+        for(int i = 0; i < 6; i++) {
+            float[] array;
+            if(i >= rotations.length) array = new float[3];
+            else array = rotations[i];
+
+            data.set(labels[i], new Vector3f(array[0], array[1], array[2]));
+        }
+    }
 }

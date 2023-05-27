@@ -34,12 +34,14 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
     private static final Class<?> WORLD;
     private static final Class<?> CRAFT_ENTITY;
     private static final Class<?> ITEM_STACK;
+    private static final Class<?> DATA_WATCHER_OBJECT;
 
     private static final Constructor<?> PACKET_LIVING_INSTANCE;
     private static final Constructor<?> PACKET_META_INSTANCE;
     private static final Constructor<?> PACKET_EQUIP_INSTANCE;
     private static final Constructor<?> PACKET_TELEPORT_INSTANCE;
     private static final Constructor<?> ARMOR_STAND_INSTANCE;
+    private static final Constructor<?> VECTOR_3F_INSTANCE;
 
     private static final MethodHandle SET_LOCATION;
     private static final MethodHandle SET_INVISIBLE;
@@ -49,8 +51,10 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
     private static final MethodHandle GET_BUKKIT_ENTITY;
     private static final MethodHandle GET_ID;
     private static final MethodHandle AS_NMS_COPY;
+    private static final MethodHandle DATA_WATCHER_SET;
 
     private static final Field NO_CLIP;
+    private static final Object VECTOR_3F;
 
     private static final Object MAINHAND;
     private static final Object OFFHAND;
@@ -58,6 +62,12 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
     private static final Object CHESTPLATE;
     private static final Object LEGGINGS;
     private static final Object BOOTS;
+    private static final Object HEAD;
+    private static final Object BODY;
+    private static final Object LEFT_ARM;
+    private static final Object RIGHT_ARM;
+    private static final Object LEFT_LEG;
+    private static final Object RIGHT_LEG;
 
     static {
         PACKET_SPAWN_LIVING = ReflectionUtils.getNMSClass(
@@ -103,6 +113,14 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
                 "world.item",
                 "ItemStack"
         );
+        DATA_WATCHER_OBJECT = ReflectionUtils.getNMSClass(
+                "network.syncher",
+                "DataWatcherObject"
+        );
+        Class<?> DATA_WATCHER_SERIALIZER = ReflectionUtils.getNMSClass(
+                "network.syncher",
+                "DataWatcherSerializer"
+        );
         Class<?> ENUM_ITEM_SLOT = ReflectionUtils.getNMSClass(
                 "world.entity",
                 "EnumItemSlot"
@@ -111,9 +129,15 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
         assert ENTITY != null && ARMOR_STAND != null && WORLD != null &&
                 PACKET_SPAWN_LIVING != null && PACKET_METADATA != null &&
                 PACKET_EQUIPMENT != null && PACKET_TELEPORT != null &&
-                ENUM_ITEM_SLOT != null;
+                DATA_WATCHER_OBJECT != null &&
+                ENUM_ITEM_SLOT != null && DATA_WATCHER_SERIALIZER != null;
 
         try {
+            Class<?> VECTOR_3F_CLASS = Class.forName(XMaterial.supports(19) ?
+                    "net.minecraft.core.Vector3f" :
+                    "com.mojang.math.Vector3fa"
+            );
+
             PACKET_LIVING_INSTANCE = PACKET_SPAWN_LIVING.getConstructor(
                     ENTITY_LIVING
             );
@@ -129,6 +153,9 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
 
             ARMOR_STAND_INSTANCE = ARMOR_STAND.getConstructor(
                     WORLD, double.class, double.class, double.class
+            );
+            VECTOR_3F_INSTANCE = VECTOR_3F_CLASS.getConstructor(
+                    float.class, float.class, float.class
             );
 
             SET_LOCATION = MethodHandles.lookup().findVirtual(
@@ -171,6 +198,11 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
             );
 
             NO_CLIP = ARMOR_STAND.getField(XMaterial.getVersion() == 17 ? "P" : "Q");
+            VECTOR_3F = DATA_WATCHER_SERIALIZER.getField("k").get(null);
+
+            DATA_WATCHER_SET = MethodHandles.lookup().findVirtual(
+                DATAWATCHER, "b", MethodType.methodType(void.class, VECTOR_3F.getClass(), Object.class)
+            );
 
             MAINHAND = ENUM_ITEM_SLOT.getDeclaredField("a").get(null);
             OFFHAND = ENUM_ITEM_SLOT.getDeclaredField("b").get(null);
@@ -178,7 +210,14 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
             CHESTPLATE = ENUM_ITEM_SLOT.getDeclaredField("e").get(null);
             LEGGINGS = ENUM_ITEM_SLOT.getDeclaredField("d").get(null);
             BOOTS = ENUM_ITEM_SLOT.getDeclaredField("c").get(null);
-        } catch (NoSuchMethodException | NoSuchFieldException | IllegalAccessException e) {
+
+            HEAD = ARMOR_STAND.getDeclaredField("bH").get(null);
+            BODY = ARMOR_STAND.getDeclaredField("bI").get(null);
+            LEFT_ARM = ARMOR_STAND.getDeclaredField("bJ").get(null);
+            RIGHT_ARM = ARMOR_STAND.getDeclaredField("bK").get(null);
+            LEFT_LEG = ARMOR_STAND.getDeclaredField("bL").get(null);
+            RIGHT_LEG = ARMOR_STAND.getDeclaredField("bM").get(null);
+        } catch (NoSuchMethodException | NoSuchFieldException | IllegalAccessException | ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
     }
@@ -216,10 +255,16 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
     @SneakyThrows
     @Override
     public void update(Collection<Player> players, ItemStack[] stack) {
+        update(players, stack, GET_DATA_WATCHER.invoke(armorStand));
+    }
+
+    @SneakyThrows
+    @Override
+    public void update(Collection<Player> players, ItemStack[] stack, Object dataWatcher) {
         Object[] packets = new Object[2];
         packets[0] = PACKET_META_INSTANCE.newInstance(
                 GET_ID.invoke(armorStand),
-                GET_DATA_WATCHER.invoke(armorStand),
+                dataWatcher,
                 true
         );
         List<Pair<?, ?>> list = new ArrayList<>();
@@ -261,4 +306,25 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
         }
     }
 
+    @Override
+    public void rotate(Collection<Player> players, float[][] rotations) {
+        try {
+            Object data = GET_DATA_WATCHER.invoke(armorStand);
+            Object[] dataWatcherObjects = new Object[] {
+                    HEAD, BODY, LEFT_ARM, RIGHT_ARM, LEFT_LEG, RIGHT_LEG
+            };
+            for(int i = 0; i < 6; i++) {
+                float[] array;
+                if(i >= rotations.length) array = new float[3];
+                else array = rotations[i];
+
+                DATA_WATCHER_SET.invoke(
+                        data,
+                        dataWatcherObjects[i],
+                        VECTOR_3F_INSTANCE.newInstance(array[0], array[1], array[2])
+                );
+            }
+        } catch (Throwable ignored) {}
+        update(players);
+    }
 }

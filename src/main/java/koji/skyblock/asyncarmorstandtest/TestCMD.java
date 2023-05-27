@@ -9,7 +9,7 @@ public class TestCMD extends KCommand {
     @Override
     public boolean onCommand(CommandSender commandSender, Command command, String s, String[] strings) {
         Player p = (Player) commandSender;
-        AsyncArmorStandTest.getCanSeeMap().put(p.getUniqueId(), Boolean.valueOf(strings[0]));
+        AsyncArmorStandTest.toggleVisibility(p);
         return false;
     }
 }

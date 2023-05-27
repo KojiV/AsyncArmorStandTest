@@ -5,6 +5,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.util.Arrays;
 import java.util.Set;
 
 import static koji.skyblock.asyncarmorstandtest.AsyncArmorStandTest.*;
@@ -94,5 +95,13 @@ public class PetStandRunnable extends BukkitRunnable {
         }
         lastY = y;
         degree++;
+    }
+
+    @Override public synchronized void cancel() throws IllegalStateException {
+        Arrays.stream(instance.getArmorStands()).forEach(a -> {
+            AsyncArmorStandTest.getHider().hideEntity(player, a.getEntity());
+            a.getEntity().remove();
+        });
+        super.cancel();
     }
 }
