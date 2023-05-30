@@ -1,5 +1,6 @@
 package koji.skyblock.asyncarmorstandtest.armorstand;
 
+import koji.developerkit.utils.KStatic;
 import koji.developerkit.utils.xseries.ReflectionUtils;
 import koji.skyblock.asyncarmorstandtest.UncollidableArmorStand;
 import net.minecraft.server.v1_8_R3.*;
@@ -12,6 +13,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.Arrays;
 import java.util.Collection;
 
 public class UncollidableArmorStand_1_8 implements UncollidableArmorStand {
@@ -19,7 +21,15 @@ public class UncollidableArmorStand_1_8 implements UncollidableArmorStand {
     private EntityArmorStand stand;
 
     @Override
-    public LivingEntity spawn(Collection<Player> players, Location location, boolean overwrite) {
+    public void setup(org.bukkit.World world) {
+        stand = new EntityArmorStand(((CraftWorld) world).getHandle());
+        stand.setInvisible(true);
+        stand.n(true);
+        stand.noclip = true;
+    }
+
+    @Override
+    public LivingEntity spawn(Collection<Player> players, Location location, float[][] rotations, boolean overwrite) {
         if (stand == null || overwrite) {
             stand = new EntityArmorStand(
                     ((CraftWorld) location.getWorld()).getHandle()
@@ -30,7 +40,16 @@ public class UncollidableArmorStand_1_8 implements UncollidableArmorStand {
         }
         stand.setLocation(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
 
-        update(players);
+        ArmorStand bukkitStand = getEntity();
+        update(players, new ItemStack[] {
+                bukkitStand.getItemInHand(),
+                null,
+                bukkitStand.getHelmet(),
+                bukkitStand.getChestplate(),
+                bukkitStand.getLeggings(),
+                bukkitStand.getBoots()
+
+        }, rotate(rotations), true);
         PacketPlayOutSpawnEntityLiving packet = new PacketPlayOutSpawnEntityLiving(stand);
         players.forEach(p -> ((CraftPlayer) p).getHandle().playerConnection.sendPacket(packet));
 
@@ -38,20 +57,21 @@ public class UncollidableArmorStand_1_8 implements UncollidableArmorStand {
     }
 
     @Override
-    public void update(Collection<Player> players, ItemStack[] stack) {
-        update(players, stack, stand.getDataWatcher());
+    public void update(Collection<Player> players, ItemStack[] stack, boolean setData) {
+        update(players, stack, stand.getDataWatcher(), setData);
     }
 
     @Override
-    public void update(Collection<Player> players, ItemStack[] stack, Object dataWatcher) {
-        Packet<?>[] packets = new Packet[stack.length];
+    public void update(Collection<Player> players, ItemStack[] stack, Object dataWatcher, boolean setData) {
+        Packet<?>[] packets = new Packet[setData ? stack.length : stack.length - 1];
         packets[0] = new PacketPlayOutEntityMetadata(
                 stand.getId(), (DataWatcher) dataWatcher, true
         );
-        for(int i = 0; i < stack.length && i != 1; i++) {
+        for(int i = 0; i < stack.length; i++) {
+            if(i == 1) continue;
             int index = i > 0 ? i - 1 : i;
             //0, 2, 3, 4, 5
-            packets[index + 1] = new PacketPlayOutEntityEquipment(
+            packets[setData ? index + 1 : index] = new PacketPlayOutEntityEquipment(
                     stand.getId(), index, CraftItemStack.asNMSCopy(stack[i])
             );
         }
@@ -71,7 +91,7 @@ public class UncollidableArmorStand_1_8 implements UncollidableArmorStand {
     }
 
     @Override
-    public void rotate(Collection<Player> players, float[][] rotations) {
+    public Object rotate(float[][] rotations) {
         DataWatcher watcher = new DataWatcher(stand);
         // 11 = Head, 12 = Body, 13 = Left Arm, 14 = Right Arm, 15 = Left Leg, 16 = Right Leg
         for(int i = 0; i < 6; i++) {
@@ -83,6 +103,6 @@ public class UncollidableArmorStand_1_8 implements UncollidableArmorStand {
 
             watcher.a(dataIndex, new Vector3f(array[0], array[1], array[2]));
         }
-        update(players, watcher);
+        return watcher;
     }
 }

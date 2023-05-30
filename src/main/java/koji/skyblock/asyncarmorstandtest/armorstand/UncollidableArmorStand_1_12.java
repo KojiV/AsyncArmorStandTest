@@ -18,7 +18,12 @@ public class UncollidableArmorStand_1_12 implements UncollidableArmorStand {
     EntityArmorStand stand;
 
     @Override
-    public LivingEntity spawn(Collection<Player> players, Location location, boolean overwrite) {
+    public void setup(org.bukkit.World world) {
+        stand = new EntityArmorStand(((CraftWorld) world).getHandle());
+    }
+
+    @Override
+    public LivingEntity spawn(Collection<Player> players, Location location, float[][] rotations, boolean overwrite) {
         if(stand == null || overwrite) {
             stand = new EntityArmorStand(
                     ((CraftWorld) location.getWorld()).getHandle()
@@ -36,12 +41,12 @@ public class UncollidableArmorStand_1_12 implements UncollidableArmorStand {
     }
 
     @Override
-    public void update(Collection<Player> players, ItemStack[] stack) {
-        update(players, stack, stand.getDataWatcher());
+    public void update(Collection<Player> players, ItemStack[] stack, boolean setData) {
+        update(players, stack, stand.getDataWatcher(), true);
     }
 
     @Override
-    public void update(Collection<Player> players, ItemStack[] stack, Object dataWatcher) {
+    public void update(Collection<Player> players, ItemStack[] stack, Object dataWatcher, boolean setData) {
         Packet<?>[] packets = new Packet[stack.length + 1];
         packets[0] = new PacketPlayOutEntityMetadata(
                 stand.getId(), (DataWatcher) dataWatcher, true
@@ -88,7 +93,7 @@ public class UncollidableArmorStand_1_12 implements UncollidableArmorStand {
     }
 
     @Override @SuppressWarnings("unchecked")
-    public void rotate(Collection<Player> players, float[][] rotations) {
+    public Object rotate(float[][] rotations) {
         DataWatcher data = stand.getDataWatcher();
         DataWatcherObject<Vector3f>[] labels = new DataWatcherObject[] {
                 EntityArmorStand.b, // Head
@@ -105,5 +110,6 @@ public class UncollidableArmorStand_1_12 implements UncollidableArmorStand {
 
             data.set(labels[i], new Vector3f(array[0], array[1], array[2]));
         }
+        return data;
     }
 }

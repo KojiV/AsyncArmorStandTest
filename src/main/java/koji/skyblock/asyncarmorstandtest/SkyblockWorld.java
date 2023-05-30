@@ -51,32 +51,37 @@ public class SkyblockWorld extends KBase implements World {
     @Getter private final Set<Player>[] cantSeePets;
     @Getter private final Set<UncollidableArmorStand> allArmorStand;
 
+    public Set<Player> getAllCanSeePlayers() {
+        HashSet<Player> set = new HashSet<>(canSeePets[0]);
+        set.addAll(canSeePets[1]);
+        return set;
+    }
+
     public boolean leftWorld(Player p) {
         int num = AsyncArmorStandTest.getCorrespondent().get(p.getUniqueId());
-        boolean boo;
+
         UncollidableArmorStand[] stands = AsyncArmorStandTest.getInstances().get(
                 p.getUniqueId()
         ).getArmorStands();
-        world.getPlayers().forEach(player -> Arrays.stream(stands).forEach(a ->
+
+        Set<Player> players = new HashSet<>(canSeePets[0]);
+        players.addAll(new HashSet<>(canSeePets[1]));
+
+        players.forEach(player -> Arrays.stream(stands).forEach(a ->
                 AsyncArmorStandTest.getHider().hideEntity(player, a.getEntity())
         ));
+
         if (AsyncArmorStandTest.getCanSeeMap().get(p.getUniqueId())) {
-            boo = canSeePets[num].remove(p);
-        } else boo = cantSeePets[num].remove(p);
-        //println("can from", canSeePets[num], getName());
-        //println("can't from", cantSeePets[num], getName());
-        return boo;
+            return canSeePets[num].remove(p);
+        } else return cantSeePets[num].remove(p);
     }
 
     public void changedToWorld(Player p) {
         int num = AsyncArmorStandTest.getCorrespondent().get(p.getUniqueId());
-        println(p.getDisplayName(), num);
         if (AsyncArmorStandTest.getCanSeeMap().get(p.getUniqueId())) {
             canSeePets[num].add(p);
         } else cantSeePets[num].add(p);
-        allArmorStand.forEach(a -> a.spawn(Collections.singletonList(p)));
-        println("can 1.8", canSeePets[0], getName());
-        println("can 1.9", canSeePets[1], getName());
+        allArmorStand.forEach(a -> a.spawn(Collections.singletonList(p), AsyncArmorStandTest.ARM_ANGLES));
     }
 
     // Interface Stuff

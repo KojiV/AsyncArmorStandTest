@@ -16,12 +16,15 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.*;
 
-// TODO: Get rotation of the head to rotate around the stand, NOT the name tag.
+// TODO: 1. I have also discovered the version/yaw name tag discrepancy
+//          (1.9+ causes yaw to misaligned (look into version specific locations)
+//       2. Get rotation of the head to rotate around the stand, NOT the name tag.
+//       3. Leaving the game is still an issue
+//       4. Test toggling visibility
 public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
 
     @Getter private static AsyncArmorStandTest main;
@@ -51,14 +54,14 @@ public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
 
     // For these, the first value is 1.8, second is 1.9+
     static final double[] OFFSETS = { -0.7, -0.95 };
-    static final double[] ROTATIONS = { 0.51, 0.82 };
+    static final double[] ROTATIONS = { 0.54, -0.22 };
 
     // This is mainly used for adjusting the armor stand to line up with the name tag.
     // Desmos came in clutch here, I hate math
-    static final double[] ADJUSTMENTS = { -0.17, -0.45 };
-    private static final float[][] ARM_ANGLES = {
+    static final double[] ADJUSTMENTS = { -0.135, 0.45 };
+    static final float[][] ARM_ANGLES = {
             { 0, 40f, 0 },
-            { 311f, 44f, 356.5f }
+            { 313f, 226f, 2.9f }
     };
 
     public static float getYaw(Player player, Location stand) {
@@ -105,9 +108,16 @@ public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
     public static void toggleVisibility(Player p, boolean boo) {
         canSeeMap.put(p.getUniqueId(), boo);
         if(boo) {
-            SkyblockWorld.getWorld(p.getWorld()).getAllArmorStand().forEach(a -> a.spawn(
-                    Collections.singletonList(p), a.getEntity().getLocation()
-            ));
+            SkyblockWorld.getWorld(p.getWorld()).getAllArmorStand().forEach(a ->
+                a.spawn(Collections.singletonList(p), new float[][] {
+                        new float[3],
+                        new float[3],
+                        new float[3],
+                        ARM_ANGLES[correspondent.get(p.getUniqueId())],
+                        new float[3],
+                        new float[3]
+                })
+            );
         }
         else SkyblockWorld.getWorld(p.getWorld()).getAllArmorStand().forEach(a ->
                 hider.hideEntity(p, a.getEntity())
@@ -157,50 +167,43 @@ public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
                     getArmorStand()
             };
 
-            Set<Player>[] connectedPlayers = SkyblockWorld.getWorld(player.getWorld()).getCanSeePets();
-            /*KStatic.println(connectedPlayers[0],
-                    connectedPlayers[1],
-                    player.getWorld().getName()
-            );*/
-            Set<Player> players = new HashSet<>(connectedPlayers[0]);
-            players.addAll(new HashSet<>(connectedPlayers[1]));
+            armorStands[0].setup(player.getWorld());
+            armorStands[1].setup(player.getWorld());
 
-            ArmorStand armorStand = (ArmorStand) armorStands[0].spawn(
-                    players, player.getLocation().add(
-                            0, 1.55 - OFFSETS[playerVersion], 0
-                    )
-            );
-            double yaw = Math.toRadians(getYaw(player, armorStand.getLocation()));
-            ArmorStand nameTag = (ArmorStand) armorStands[1].spawn(
-                    players, armorStand.getLocation().add(
-                            -Math.cos(yaw) * ROTATIONS[playerVersion],
-                            -OFFSETS[playerVersion],
-                            -Math.sin(yaw) * ROTATIONS[playerVersion]
-                    )
-            );
+            ArmorStand stand = armorStands[0].getEntity();
+            stand.setArms(true);
+            stand.setGravity(false);
+            stand.setItemInHand(XMaterial.PLAYER_HEAD.parseItem());
 
-            armorStand.setArms(true);
-            armorStand.setGravity(false);
-            armorStand.setItemInHand(XMaterial.PLAYER_HEAD.parseItem());
+            ArmorStand nameTag = armorStands[1].getEntity();
             nameTag.setGravity(false);
-            nameTag.setCustomNameVisible(false);
-            armorStands[1].update(players, new ItemStack[6]);
+            nameTag.setCustomNameVisible(true);
+            nameTag.setCustomName("Name Tag");
 
+            Set<Player>[] connectedPlayers = SkyblockWorld.getWorld(player.getWorld()).getCanSeePets();
             for(int i = 0; i < 2; i++) {
-                if (!connectedPlayers[i].isEmpty()) {
-                    armorStands[0].rotate(connectedPlayers[i], new float[][] {
-                            new float[3],
-                            new float[3],
-                            new float[3],
-                            ARM_ANGLES[i],
-                            new float[3],
-                            new float[3]
-                    });
-                    /*armorStands[0].update(connectedPlayers[i], new ItemStack[]{
-                            XMaterial.PLAYER_HEAD.parseItem(), null, null,
-                            null, null, null
-                    });*/
-                }
+                armorStands[0].spawn(connectedPlayers[i],
+                        player.getLocation().add(0, 1.55, 0),
+                        new float[][]{
+                                new float[3],
+                                new float[3],
+                                new float[3],
+                                ARM_ANGLES[i],
+                                new float[3],
+                                new float[3]
+                        },
+                        false
+                );
+
+                double yaw = Math.toRadians(getYaw(player, armorStands[0].getEntity().getLocation()));
+                double sin = Math.sin(yaw);
+                double cos = Math.cos(yaw);
+
+                armorStands[1].spawn(connectedPlayers[i], armorStands[0].getEntity().getLocation().add(
+                        -cos * ROTATIONS[i] + sin * ADJUSTMENTS[i],
+                        -OFFSETS[i],
+                        -sin * ROTATIONS[i] - cos * ADJUSTMENTS[i]
+                ), false);
             }
         }
     }

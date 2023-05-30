@@ -7,6 +7,7 @@ import koji.developerkit.utils.xseries.XMaterial;
 import koji.skyblock.asyncarmorstandtest.UncollidableArmorStand;
 import lombok.SneakyThrows;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -17,6 +18,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -224,9 +226,18 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
 
     private Object armorStand;
 
+    @Override
+    public void setup(World world) {
+        try {
+            armorStand = ARMOR_STAND_INSTANCE.newInstance(getNMSWorld(world), 0, 0, 0);
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @SneakyThrows
     @Override
-    public LivingEntity spawn(Collection<Player> players, Location location, boolean overwrite) {
+    public LivingEntity spawn(Collection<Player> players, Location location, float[][] rotations, boolean overwrite) {
         Object craftWorld = getNMSWorld(location.getWorld());
 
         if (armorStand == null || overwrite) {
@@ -254,13 +265,13 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
 
     @SneakyThrows
     @Override
-    public void update(Collection<Player> players, ItemStack[] stack) {
-        update(players, stack, GET_DATA_WATCHER.invoke(armorStand));
+    public void update(Collection<Player> players, ItemStack[] stack, boolean setData) {
+        update(players, stack, GET_DATA_WATCHER.invoke(armorStand), true);
     }
 
     @SneakyThrows
     @Override
-    public void update(Collection<Player> players, ItemStack[] stack, Object dataWatcher) {
+    public void update(Collection<Player> players, ItemStack[] stack, Object dataWatcher, boolean setData) {
         Object[] packets = new Object[2];
         packets[0] = PACKET_META_INSTANCE.newInstance(
                 GET_ID.invoke(armorStand),
@@ -307,7 +318,7 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
     }
 
     @Override
-    public void rotate(Collection<Player> players, float[][] rotations) {
+    public Object rotate(float[][] rotations) {
         try {
             Object data = GET_DATA_WATCHER.invoke(armorStand);
             Object[] dataWatcherObjects = new Object[] {
@@ -324,7 +335,8 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
                         VECTOR_3F_INSTANCE.newInstance(array[0], array[1], array[2])
                 );
             }
+            return data;
         } catch (Throwable ignored) {}
-        update(players);
+        return null;
     }
 }

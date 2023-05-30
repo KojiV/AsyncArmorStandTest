@@ -54,7 +54,7 @@ public class PetStandRunnable extends BukkitRunnable {
         }
 
         // If it's more than sqrt(2.5) blocks away (keep in mind it goes by squared value)
-        if (distance > 2.5) {
+        if (distance > 3.5) {
             // Moves the name tag closer to the player at the speed of the average player
             mainLoc = mainLoc.add(playerLoc.toVector()
                     .subtract(nameTagLoc.toVector())
