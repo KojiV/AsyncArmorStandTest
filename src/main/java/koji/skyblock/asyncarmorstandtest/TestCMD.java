@@ -2,6 +2,7 @@ package koji.skyblock.asyncarmorstandtest;
 
 import koji.developerkit.commands.KCommand;
 import koji.developerkit.utils.xseries.XMaterial;
+import lombok.SneakyThrows;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -17,7 +18,9 @@ public class TestCMD extends KCommand {
     UncollidableArmorStand stand;
     UncollidableArmorStand nameTag;
     Location loc;
+    boolean visible;
 
+    @SneakyThrows
     @Override
     public boolean onCommand(CommandSender commandSender, Command command, String s, String[] args) {
         Player p = (Player) commandSender;
@@ -34,7 +37,7 @@ public class TestCMD extends KCommand {
             override = Boolean.parseBoolean(args[7]);
         }
 
-        if (override) {
+        if (stand == null || override) {
             for (int i = 0; i < 2; i++) {
                 Set<Player> canSeePets = SkyblockWorld.getWorld(p.getWorld()).getCanSeePets()[i];
                 if (stand != null) canSeePets.forEach(pl ->
@@ -88,6 +91,7 @@ public class TestCMD extends KCommand {
                         ), false
                 );
             }
+            visible = true;
         } else {
             AsyncArmorStandTest.toggleVisibility(p);
         }

@@ -100,4 +100,9 @@ public class UncollidableArmorStand_1_8 implements UncollidableArmorStand {
         }
         return watcher;
     }
+
+    @Override
+    public void refreshVisibility(Collection<Player> players) {
+
+    }
 }

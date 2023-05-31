@@ -107,10 +107,8 @@ public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
 
     public static void toggleVisibility(Player p, boolean boo) {
         canSeeMap.put(p.getUniqueId(), boo);
-        if(boo) {
-            SkyblockWorld.getWorld(p.getWorld()).changedToWorld(p);
-        } else SkyblockWorld.getWorld(p.getWorld()).getAllArmorStand().forEach(a ->
-                hider.hideEntity(p, a.getEntity())
+        SkyblockWorld.getWorld(p.getWorld()).getAllArmorStand().forEach(a ->
+                hider.toggleEntity(p, a.getEntity())
         );
     }
 

@@ -30,13 +30,11 @@ public class PetStandRunnable extends BukkitRunnable {
 
         degree = 0;
         lastY = 0;
-        mainLoc = instance.getArmorStands()[0].getEntity().getLocation();
         nameTagLoc = instance.getArmorStands()[1].getEntity().getLocation();
     }
 
     private int degree;
     private double lastY;
-    private Location mainLoc;
     private Location nameTagLoc;
 
     @Override
@@ -93,7 +91,6 @@ public class PetStandRunnable extends BukkitRunnable {
                         sin * ROTATIONS[i] + cos * ADJUSTMENTS[i]
                 );
                 if(getCorrespondent().get(player.getUniqueId()) == i) {
-                    this.mainLoc = mainLoc;
                     this.nameTagLoc = nameTagLoc;
                 }
                 instance.getArmorStands()[1].move(players, nameTagLoc);

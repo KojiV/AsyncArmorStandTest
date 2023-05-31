@@ -74,6 +74,8 @@ public interface UncollidableArmorStand {
 
     Object rotate(float[][] rotations);
 
+    void refreshVisibility(Collection<Player> players);
+
     default float[] fromEulerAngle(EulerAngle angle) {
         return new float[] {
                 (float) Math.toDegrees(angle.getX()),
