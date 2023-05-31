@@ -3,7 +3,7 @@ Source Code for my testing of asynchronous Armor Stand movements.
 
 I whipped this up to originally test for Koji's Skyblock without having to compile the entirety of the plugin every time. Because of this, the code isn't of the highest quality, and there are things I did just to save myself the time and the headache. So take this code with a litte grain of salt.
 
-## Why?
+# Why?
 By default, the easiest way to change the position of an entity is to teleport it. 
 
 ```
@@ -43,23 +43,36 @@ So from there you have two options:
 1. Teleport the entity and do it on the main task
 2. Use packets (I chose this)
 
-## Packets
-### Basic Overview
+# Packets
+## Basic Overview
 Instead of teleporting with the Bukkit API, NMS packets are instead used to teleport the armor stand. To avoid reflection, an interface (UncollidibleArmorStand) is used to house each version's NMS, then it selects which implemented version interface to use based on the version of the server. Normally, the armor stand would just be summoned via the Bukkit API and then edited through packets, but instead they are spawned via packets as well (more information as to why is in the next section).
 
-The packets used are all variations of:
+The packets used are all version based variations of:
 - PacketPlayOutSpawnEntityLiving
 - PacketPlayOutEntityMetadata
 - PacketPlayOutEntityEquipment
 - PacketPlayOutEntityTeleport
 
-### 1.17+
+## 1.17+
 1.17 and any version above that is very pesky and annoying because of one reason: the package names are all identical. Because of this issue, compilers on compile time don't see anything wrong, but later, the servers run into issues due to the differences in method names. To remedy this issue, I use reflection in the 1.17+ armor stand class, which was very annoying. 
 
-## Multiversion Stuff (ViaVersion)
+# Multiversion Stuff (ViaVersion)
 This was basically the main source of my annoyance towards everything, and I will explain why here. 
 
-### Overview
+## Overview
 Starting in 1.9, the way armor stands hold skulls changed, so the angle of the armor stands change between 1.8 and 1.9. To make the pet always show upright correctly, packets are used to spawn only for certain players rather than others. Here is what happens if the arm pose is universal:
 ![Ew](https://github.com/KojiV/AsyncArmorStandTest/assets/69867605/6c326014-6ddb-424b-90f3-67c398a06cf1)
+Obviously not super great. So to remedy this, individual data watchers are given to certain players depending on the version in order to always be upright to the player.
 
+## Spawning and Visibility
+Within the UncollidableArmorStand interface, a few core methods exist:
+- setup
+- spawn
+- update
+- move
+- rotate
+- destroy
+
+All of these methods are essential if you want to properly setup everything, and so I'll explain what each does
+
+### Setup

@@ -37,7 +37,7 @@ public class TestCMD extends KCommand {
             override = Boolean.parseBoolean(args[7]);
         }
 
-        if (stand == null || override) {
+        if(override) { //if (stand == null || override) {
             for (int i = 0; i < 2; i++) {
                 Set<Player> canSeePets = SkyblockWorld.getWorld(p.getWorld()).getCanSeePets()[i];
                 if (stand != null) canSeePets.forEach(pl ->
