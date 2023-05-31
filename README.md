@@ -61,4 +61,3 @@ This was basically the main source of my annoyance towards everything, and I wil
 
 ### Overview
 Starting in 1.9, the way armor stands hold skulls changed, so the angle of the armor stands change between 1.8 and 1.9. To make the pet always show upright correctly, packets are used to spawn only for certain players rather than others. Here is what happens if the arm pose is universal:
-![Sideways Item Held](../../../AppData/Roaming/.minecraft/screenshots/2023-05-25_22.14.15.png)
