@@ -17,7 +17,6 @@ public class TestCMD extends KCommand {
     UncollidableArmorStand stand;
     UncollidableArmorStand nameTag;
     Location loc;
-    boolean hasItem;
 
     @Override
     public boolean onCommand(CommandSender commandSender, Command command, String s, String[] args) {
@@ -35,7 +34,7 @@ public class TestCMD extends KCommand {
             override = Boolean.parseBoolean(args[7]);
         }
 
-        if (stand == null || override) {
+        if (override) {
             for (int i = 0; i < 2; i++) {
                 Set<Player> canSeePets = SkyblockWorld.getWorld(p.getWorld()).getCanSeePets()[i];
                 if (stand != null) canSeePets.forEach(pl ->
@@ -89,23 +88,8 @@ public class TestCMD extends KCommand {
                         ), false
                 );
             }
-
-
         } else {
-            double yaw = Math.toRadians(loc.getYaw());
-            double sin = Math.sin(yaw);
-            double cos = Math.cos(yaw);
-
-            for (int i = 0; i < 2; i++) {
-                Set<Player> players = SkyblockWorld.getWorld(p.getWorld()).getCanSeePets()[i];
-                stand.update(players, false);
-                stand.move(players, loc.clone().add(0, 1.55 - OFFSETS[i], 0));
-                nameTag.move(players, stand.getEntity().getLocation().clone().add(
-                        -cos * ROTATIONS[i] + sin * ADJUSTMENTS[i],
-                        -OFFSETS[i],
-                        -sin * ROTATIONS[i] - cos * ADJUSTMENTS[i]
-                ));
-            }
+            AsyncArmorStandTest.toggleVisibility(p);
         }
         return false;
     }

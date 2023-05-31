@@ -14,6 +14,11 @@ public interface UncollidableArmorStand {
 
     void setup(World world);
 
+    default LivingEntity spawn(Collection<Player> players, boolean overwrite) {
+        Location loc = getEntity().getLocation();
+        return spawn(players, loc, overwrite);
+    }
+
     default LivingEntity spawn(Collection<Player> players, float[][] rotate) {
         return spawn(players, rotate, getEntity().getLocation());
     }

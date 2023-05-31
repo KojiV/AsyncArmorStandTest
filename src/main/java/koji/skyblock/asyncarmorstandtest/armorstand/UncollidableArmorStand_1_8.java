@@ -1,6 +1,5 @@
 package koji.skyblock.asyncarmorstandtest.armorstand;
 
-import koji.developerkit.utils.KStatic;
 import koji.developerkit.utils.xseries.ReflectionUtils;
 import koji.skyblock.asyncarmorstandtest.UncollidableArmorStand;
 import net.minecraft.server.v1_8_R3.*;
@@ -13,7 +12,6 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.Arrays;
 import java.util.Collection;
 
 public class UncollidableArmorStand_1_8 implements UncollidableArmorStand {
@@ -97,10 +95,7 @@ public class UncollidableArmorStand_1_8 implements UncollidableArmorStand {
         for(int i = 0; i < 6; i++) {
             int dataIndex = 11 + i;
 
-            float[] array;
-            if(i >= rotations.length) array = new float[3];
-            else array = rotations[i];
-
+            float[] array = rotations[i];
             watcher.a(dataIndex, new Vector3f(array[0], array[1], array[2]));
         }
         return watcher;

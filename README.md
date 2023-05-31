@@ -34,9 +34,10 @@ new BukkitRunnable() {
 }.runTaskTimer(plugin, 1L, 1L);
 ```
 
-This is better, as you can now pawn it off to another thread instead of forcing it to handle itself, potentially boosting performance. This also fixes the issue of the visual lag. However, this method comes with one huge downside:
+This is better, as you can now pawn it off to another thread instead of forcing it to handle itself, potentially boosting performance. This also fixes the issue of the visual lag. However, this method comes with two huge downsides:
 
-**You can't rotate the entity**
+1. **You can't rotate the entity**
+2. You cannot move the entity move huge distances instantly
 
 So from there you have two options:
 1. Teleport the entity and do it on the main task
@@ -53,10 +54,11 @@ The packets used are all variations of:
 - PacketPlayOutEntityTeleport
 
 ### 1.17+
-1.17 and any version above that is very pesky and annoying because of one reason: the package names are all identical. Because of this issue, compilers on compile time don't see anything wrong, but later down the time, the servers run into issues due to the differences in method names. To remedy this issue, I use reflection in the 1.17+ armor stand class, which was very annoying. 
+1.17 and any version above that is very pesky and annoying because of one reason: the package names are all identical. Because of this issue, compilers on compile time don't see anything wrong, but later, the servers run into issues due to the differences in method names. To remedy this issue, I use reflection in the 1.17+ armor stand class, which was very annoying. 
 
 ## Multiversion Stuff (ViaVersion)
 This was basically the main source of my annoyance towards everything, and I will explain why here. 
 
 ### Overview
 Starting in 1.9, the way armor stands hold skulls changed, so the angle of the armor stands change between 1.8 and 1.9. To make the pet always show upright correctly, packets are used to spawn only for certain players rather than others. Here is what happens if the arm pose is universal:
+![Sideways Item Held](../../../AppData/Roaming/.minecraft/screenshots/2023-05-25_22.14.15.png)

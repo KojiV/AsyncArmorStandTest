@@ -2,7 +2,6 @@ package koji.skyblock.asyncarmorstandtest;
 
 import com.viaversion.viaversion.api.Via;
 import koji.developerkit.runnable.KRunnable;
-import koji.developerkit.utils.KStatic;
 import koji.developerkit.utils.SafeMap;
 import koji.developerkit.utils.xseries.XMaterial;
 import koji.skyblock.asyncarmorstandtest.armorstand.*;
@@ -18,13 +17,12 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Set;
+import java.util.UUID;
 
-// TODO: 1. I have also discovered the version/yaw name tag discrepancy
-//          (1.9+ causes yaw to misaligned (look into version specific locations)
+// TODO: 1. Get visual toggling working
 //       2. Get rotation of the head to rotate around the stand, NOT the name tag.
-//       3. Leaving the game is still an issue
-//       4. Test toggling visibility
 public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
 
     @Getter private static AsyncArmorStandTest main;
@@ -79,10 +77,11 @@ public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
         Player p = e.getPlayer();
         int versionNum = Via.getAPI().getPlayerVersion(p.getUniqueId()) <= 47 ? 0 : 1;
         correspondent.put(p.getUniqueId(), versionNum);
-        SkyblockWorld.getWorld(p.getWorld()).changedToWorld(p);
 
-        new KRunnable(task -> instances.put(p.getUniqueId(), new PlayerInstance(p))
-        ).runTaskLaterAsynchronously(main, 1L);
+        new KRunnable(task -> {
+            SkyblockWorld.getWorld(p.getWorld()).changedToWorld(p);
+            instances.put(p.getUniqueId(), new PlayerInstance(p));
+        }).runTaskLaterAsynchronously(main, 10L);
     }
 
     @EventHandler
@@ -108,18 +107,8 @@ public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
     public static void toggleVisibility(Player p, boolean boo) {
         canSeeMap.put(p.getUniqueId(), boo);
         if(boo) {
-            SkyblockWorld.getWorld(p.getWorld()).getAllArmorStand().forEach(a ->
-                a.spawn(Collections.singletonList(p), new float[][] {
-                        new float[3],
-                        new float[3],
-                        new float[3],
-                        ARM_ANGLES[correspondent.get(p.getUniqueId())],
-                        new float[3],
-                        new float[3]
-                })
-            );
-        }
-        else SkyblockWorld.getWorld(p.getWorld()).getAllArmorStand().forEach(a ->
+            SkyblockWorld.getWorld(p.getWorld()).changedToWorld(p);
+        } else SkyblockWorld.getWorld(p.getWorld()).getAllArmorStand().forEach(a ->
                 hider.hideEntity(p, a.getEntity())
         );
     }
@@ -149,16 +138,13 @@ public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
         public PlayerInstance(Player p) {
             player = p;
             playerVersion = Via.getAPI().getPlayerVersion(p.getUniqueId()) <= 47 ? 0 : 1;
-            KStatic.println(playerVersion);
+            //KStatic.println(playerVersion);
             armorStands = new UncollidableArmorStand[2];
             createArmorStands();
-            SkyblockWorld.getWorld(p.getWorld()).getAllArmorStand().addAll(
-                    new HashSet<>(Arrays.asList(armorStands))
-            );
 
             runnable = new PetStandRunnable(this);
             runnable.runTaskTimerAsynchronously(getMain(), 10L, 1L);
-            KStatic.println(playerVersion);
+            //KStatic.println(playerVersion);
         }
 
         public void createArmorStands() {
@@ -174,36 +160,37 @@ public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
             stand.setArms(true);
             stand.setGravity(false);
             stand.setItemInHand(XMaterial.PLAYER_HEAD.parseItem());
+            SkyblockWorld.getWorld(player.getWorld()).getAllArmorStand().add(armorStands[0]);
 
             ArmorStand nameTag = armorStands[1].getEntity();
             nameTag.setGravity(false);
             nameTag.setCustomNameVisible(true);
             nameTag.setCustomName("Name Tag");
+            SkyblockWorld.getWorld(player.getWorld()).getAllArmorStand().add(armorStands[1]);
 
             Set<Player>[] connectedPlayers = SkyblockWorld.getWorld(player.getWorld()).getCanSeePets();
             for(int i = 0; i < 2; i++) {
-                armorStands[0].spawn(connectedPlayers[i],
+                armorStands[1].spawn(connectedPlayers[i],
                         player.getLocation().add(0, 1.55, 0),
-                        new float[][]{
-                                new float[3],
-                                new float[3],
-                                new float[3],
-                                ARM_ANGLES[i],
-                                new float[3],
-                                new float[3]
-                        },
                         false
                 );
 
-                double yaw = Math.toRadians(getYaw(player, armorStands[0].getEntity().getLocation()));
+                double yaw = Math.toRadians(getYaw(player, armorStands[1].getEntity().getLocation()));
                 double sin = Math.sin(yaw);
                 double cos = Math.cos(yaw);
 
-                armorStands[1].spawn(connectedPlayers[i], armorStands[0].getEntity().getLocation().add(
-                        -cos * ROTATIONS[i] + sin * ADJUSTMENTS[i],
-                        -OFFSETS[i],
-                        -sin * ROTATIONS[i] - cos * ADJUSTMENTS[i]
-                ), false);
+                armorStands[0].spawn(connectedPlayers[i], armorStands[1].getEntity().getLocation().add(
+                        cos * ROTATIONS[i] - sin * ADJUSTMENTS[i],
+                        OFFSETS[i],
+                        sin * ROTATIONS[i] + cos * ADJUSTMENTS[i]
+                ), new float[][]{
+                        new float[3],
+                        new float[3],
+                        new float[3],
+                        ARM_ANGLES[i],
+                        new float[3],
+                        new float[3]
+                }, false);
             }
         }
     }

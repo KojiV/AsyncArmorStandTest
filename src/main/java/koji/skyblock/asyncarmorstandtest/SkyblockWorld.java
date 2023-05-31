@@ -16,6 +16,8 @@ import org.bukkit.util.Vector;
 import java.io.File;
 import java.util.*;
 
+import static koji.skyblock.asyncarmorstandtest.AsyncArmorStandTest.ARM_ANGLES;
+
 public class SkyblockWorld extends KBase implements World {
 
     private static final HashMap<World, SkyblockWorld> worlds = new HashMap<>();
@@ -67,9 +69,10 @@ public class SkyblockWorld extends KBase implements World {
         Set<Player> players = new HashSet<>(canSeePets[0]);
         players.addAll(new HashSet<>(canSeePets[1]));
 
-        players.forEach(player -> Arrays.stream(stands).forEach(a ->
-                AsyncArmorStandTest.getHider().hideEntity(player, a.getEntity())
-        ));
+        Arrays.stream(stands).forEach(a -> {
+            players.forEach(player -> AsyncArmorStandTest.getHider().hideEntity(player, a.getEntity()));
+            allArmorStand.remove(a);
+        });
 
         if (AsyncArmorStandTest.getCanSeeMap().get(p.getUniqueId())) {
             return canSeePets[num].remove(p);
@@ -80,8 +83,15 @@ public class SkyblockWorld extends KBase implements World {
         int num = AsyncArmorStandTest.getCorrespondent().get(p.getUniqueId());
         if (AsyncArmorStandTest.getCanSeeMap().get(p.getUniqueId())) {
             canSeePets[num].add(p);
+            allArmorStand.forEach(a -> a.spawn(Collections.singletonList(p), new float[][] {
+                    new float[3],
+                    new float[3],
+                    new float[3],
+                    ARM_ANGLES[AsyncArmorStandTest.getCorrespondent().get(p.getUniqueId())],
+                    new float[3],
+                    new float[3]
+            }));
         } else cantSeePets[num].add(p);
-        allArmorStand.forEach(a -> a.spawn(Collections.singletonList(p), AsyncArmorStandTest.ARM_ANGLES));
     }
 
     // Interface Stuff

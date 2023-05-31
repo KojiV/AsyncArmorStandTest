@@ -30,10 +30,14 @@ public class PetStandRunnable extends BukkitRunnable {
 
         degree = 0;
         lastY = 0;
+        mainLoc = instance.getArmorStands()[0].getEntity().getLocation();
+        nameTagLoc = instance.getArmorStands()[1].getEntity().getLocation();
     }
 
     private int degree;
     private double lastY;
+    private Location mainLoc;
+    private Location nameTagLoc;
 
     @Override
     public void run() {
@@ -44,34 +48,33 @@ public class PetStandRunnable extends BukkitRunnable {
         double y = Math.sin(radians * SPEED) * DISTANCE;
 
         Location playerLoc = player.getLocation().add(0, 1.55, 0);
-        Location mainLoc = instance.getArmorStands()[0].getEntity().getLocation();
-        Location nameTagLoc = instance.getArmorStands()[1].getEntity().getLocation();
+        Location nameTagLoc = this.nameTagLoc;
 
         // Gets the distance between the armor stand and the player (squared)
         double distance = 0.0;
-        if(mainLoc.getWorld() == player.getWorld()) {
+        if(nameTagLoc.getWorld() == player.getWorld()) {
             distance = playerLoc.distanceSquared(nameTagLoc);
         }
 
-        // If it's more than sqrt(2.5) blocks away (keep in mind it goes by squared value)
-        if (distance > 3.5) {
+        // If it's more than sqrt(3) blocks away (keep in mind it goes by squared value)
+        if (distance > 3) {
             // Moves the name tag closer to the player at the speed of the average player
-            mainLoc = mainLoc.add(playerLoc.toVector()
+            nameTagLoc = nameTagLoc.add(playerLoc.toVector()
                     .subtract(nameTagLoc.toVector())
                     .normalize()
                     .multiply(0.3)
             );
 
-            mainLoc.setYaw(getYaw(player, nameTagLoc));
+            nameTagLoc.setYaw(getYaw(player, nameTagLoc));
         }
-        mainLoc.add(0, y - lastY, 0);
+        nameTagLoc.add(0, y - lastY, 0);
 
-        double yaw = Math.toRadians(mainLoc.getYaw());
+        double yaw = Math.toRadians(nameTagLoc.getYaw());
         double cos = Math.cos(yaw);
         double sin = Math.sin(yaw);
 
-        if(mainLoc.getWorld() != player.getWorld()) {
-            mainLoc.getWorld().getPlayers().forEach(p -> {
+        if(nameTagLoc.getWorld() != player.getWorld()) {
+            nameTagLoc.getWorld().getPlayers().forEach(p -> {
                 AsyncArmorStandTest.getHider().hideEntity(p, instance.getArmorStands()[0].getEntity());
                 AsyncArmorStandTest.getHider().hideEntity(p, instance.getArmorStands()[1].getEntity());
             });
@@ -79,16 +82,20 @@ public class PetStandRunnable extends BukkitRunnable {
         }
 
         for(int i = 0; i < 2; i++) {
-            if(distance > 400 || mainLoc.getWorld() != player.getWorld()) {
-                mainLoc = player.getLocation().add(0, 1.55 - OFFSETS[i], 0);
+            if(distance > 400 || nameTagLoc.getWorld() != player.getWorld()) {
+                nameTagLoc = player.getLocation().add(0, 1.55, 0);
             }
             Set<Player> players = world.getCanSeePets()[i];
             if(!players.isEmpty()) {
-                nameTagLoc = mainLoc.clone().add(
-                        -cos * ROTATIONS[i] + sin * ADJUSTMENTS[i],
-                        -OFFSETS[i],
-                        -sin * ROTATIONS[i] - cos * ADJUSTMENTS[i]
+                Location mainLoc = nameTagLoc.clone().add(
+                        cos * ROTATIONS[i] - sin * ADJUSTMENTS[i],
+                        OFFSETS[i],
+                        sin * ROTATIONS[i] + cos * ADJUSTMENTS[i]
                 );
+                if(getCorrespondent().get(player.getUniqueId()) == i) {
+                    this.mainLoc = mainLoc;
+                    this.nameTagLoc = nameTagLoc;
+                }
                 instance.getArmorStands()[1].move(players, nameTagLoc);
                 instance.getArmorStands()[0].move(players, mainLoc);
             }
