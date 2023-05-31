@@ -1,6 +1,8 @@
 package koji.skyblock.asyncarmorstandtest.armorstand;
 
+import koji.developerkit.runnable.KRunnable;
 import koji.developerkit.utils.xseries.ReflectionUtils;
+import koji.skyblock.asyncarmorstandtest.AsyncArmorStandTest;
 import koji.skyblock.asyncarmorstandtest.UncollidableArmorStand;
 import net.minecraft.server.v1_14_R1.*;
 import org.bukkit.Location;
@@ -19,7 +21,13 @@ public class UncollidableArmorStand_1_14 implements UncollidableArmorStand {
 
     @Override
     public void setup(org.bukkit.World world) {
-        stand = new EntityArmorStand(EntityTypes.ARMOR_STAND, ((CraftWorld) world).getHandle());
+        stand = new EntityArmorStand(
+                EntityTypes.ARMOR_STAND,
+                ((CraftWorld) world).getHandle()
+        );
+        stand.setInvisible(true);
+        stand.setMarker(true);
+        stand.noclip = true;
     }
 
     @Override
@@ -35,6 +43,19 @@ public class UncollidableArmorStand_1_14 implements UncollidableArmorStand {
         }
         stand.setLocation(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
 
+        new KRunnable(task -> {
+            ArmorStand bukkitStand = getEntity();
+            update(players, new ItemStack[] {
+                    bukkitStand.getItemInHand(),
+                    null,
+                    bukkitStand.getHelmet(),
+                    bukkitStand.getChestplate(),
+                    bukkitStand.getLeggings(),
+                    bukkitStand.getBoots()
+
+            }, rotate(rotations), true);
+        }).runTaskLaterAsynchronously(AsyncArmorStandTest.getMain(), 5L);
+
         PacketPlayOutSpawnEntityLiving packet = new PacketPlayOutSpawnEntityLiving(stand);
         players.forEach(p -> ((CraftPlayer) p).getHandle().playerConnection.sendPacket(packet));
 
@@ -43,42 +64,32 @@ public class UncollidableArmorStand_1_14 implements UncollidableArmorStand {
 
     @Override
     public void update(Collection<Player> players, ItemStack[] stack, boolean setData) {
-        update(players, stack, stand.getDataWatcher(), true);
+        update(players, stack, stand.getDataWatcher(), setData);
     }
 
     @Override
     public void update(Collection<Player> players, ItemStack[] stack, Object dataWatcher, boolean setData) {
-        Packet<?>[] packets = new Packet[stack.length + 1];
+        Packet<?>[] packets = new Packet[setData ? stack.length + 1 : stack.length];
         packets[0] = new PacketPlayOutEntityMetadata(
                 stand.getId(), (DataWatcher) dataWatcher, true
         );
         for (int i = 0; i < stack.length; i++) {
-            EnumItemSlot slot;
-            switch (i) {
-                default:
-                    slot = EnumItemSlot.MAINHAND;
-                    break;
-                case 1:
-                    slot = EnumItemSlot.OFFHAND;
-                    break;
-                case 2:
-                    slot = EnumItemSlot.HEAD;
-                    break;
-                case 3:
-                    slot = EnumItemSlot.CHEST;
-                    break;
-                case 4:
-                    slot = EnumItemSlot.LEGS;
-                    break;
-                case 5:
-                    slot = EnumItemSlot.FEET;
-                    break;
-            }
-            packets[i + 1] = new PacketPlayOutEntityEquipment(
-                    stand.getId(), slot, CraftItemStack.asNMSCopy(stack[i])
+            packets[setData ? i + 1 : i] = new PacketPlayOutEntityEquipment(
+                    stand.getId(), getSlot(i), CraftItemStack.asNMSCopy(stack[i])
             );
         }
         players.forEach(p -> ReflectionUtils.sendPacket(p, (Object[]) packets));
+    }
+
+    private EnumItemSlot getSlot(int i) {
+        switch (i) {
+            default: return EnumItemSlot.MAINHAND;
+            case 1: return EnumItemSlot.OFFHAND;
+            case 2: return EnumItemSlot.HEAD;
+            case 3: return EnumItemSlot.CHEST;
+            case 4: return EnumItemSlot.LEGS;
+            case 5: return EnumItemSlot.FEET;
+        }
     }
 
     @Override
@@ -95,7 +106,7 @@ public class UncollidableArmorStand_1_14 implements UncollidableArmorStand {
 
     @Override @SuppressWarnings("unchecked")
     public Object rotate(float[][] rotations) {
-        DataWatcher data = stand.getDataWatcher();
+        DataWatcher data = new DataWatcher(stand);
         DataWatcherObject<Vector3f>[] labels = new DataWatcherObject[] {
                 EntityArmorStand.b, // Head
                 EntityArmorStand.c, // Body
@@ -105,12 +116,15 @@ public class UncollidableArmorStand_1_14 implements UncollidableArmorStand {
                 EntityArmorStand.g // Right Leg
         };
         for(int i = 0; i < 6; i++) {
-            float[] array;
-            if(i >= rotations.length) array = new float[3];
-            else array = rotations[i];
-
-            data.set(labels[i], new Vector3f(array[0], array[1], array[2]));
+            float[] array = rotations[i];
+            data.register(labels[i], new Vector3f(array[0], array[1], array[2]));
         }
         return data;
+    }
+
+    @Override
+    public void destroy(Collection<Player> players) {
+        PacketPlayOutEntityDestroy packet = new PacketPlayOutEntityDestroy(stand.getId());
+        players.forEach(p -> ((CraftPlayer) p).getHandle().playerConnection.sendPacket(packet));
     }
 }

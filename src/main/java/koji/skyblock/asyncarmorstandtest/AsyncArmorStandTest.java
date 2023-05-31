@@ -17,13 +17,12 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.HashMap;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
-// TODO: 1. Get visual toggling working
-//       2. Update other Uncollidables to be correct with 1_8
-//       3. Get rotation of the head to rotate around the stand, NOT the name tag.
+// TODO: 1. Test every version
+//       2*. Get rotation of the head to rotate around the stand, NOT the name tag.
+//
+//       * = possibly won't happen
 public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
 
     @Getter private static AsyncArmorStandTest main;
@@ -107,9 +106,19 @@ public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
 
     public static void toggleVisibility(Player p, boolean boo) {
         canSeeMap.put(p.getUniqueId(), boo);
-        SkyblockWorld.getWorld(p.getWorld()).getAllArmorStand().forEach(a ->
-                hider.toggleEntity(p, a.getEntity())
-        );
+
+        Collection<Player> player = Collections.singleton(p);
+        Set<UncollidableArmorStand> stands = SkyblockWorld.getWorld(p.getWorld()).getAllArmorStand();
+
+        if(boo) stands.forEach(a -> a.spawn(player, new float[][] {
+                new float[3],
+                new float[3],
+                new float[3],
+                ARM_ANGLES[AsyncArmorStandTest.getCorrespondent().get(p.getUniqueId())],
+                new float[3],
+                new float[3]
+        }, false));
+        else stands.forEach(a -> a.destroy(player));
     }
 
     public static UncollidableArmorStand getArmorStand() {

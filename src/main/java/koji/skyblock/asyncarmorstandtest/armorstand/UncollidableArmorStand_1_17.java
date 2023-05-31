@@ -2,8 +2,10 @@ package koji.skyblock.asyncarmorstandtest.armorstand;
 
 import com.mojang.datafixers.util.Pair;
 import koji.developerkit.KBase;
+import koji.developerkit.runnable.KRunnable;
 import koji.developerkit.utils.xseries.ReflectionUtils;
 import koji.developerkit.utils.xseries.XMaterial;
+import koji.skyblock.asyncarmorstandtest.AsyncArmorStandTest;
 import koji.skyblock.asyncarmorstandtest.UncollidableArmorStand;
 import lombok.SneakyThrows;
 import org.bukkit.Location;
@@ -18,7 +20,6 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -30,6 +31,7 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
     private static final Class<?> PACKET_METADATA;
     private static final Class<?> PACKET_EQUIPMENT;
     private static final Class<?> PACKET_TELEPORT;
+    private static final Class<?> PACKET_DESTROY;
     private static final Class<?> ENTITY;
     private static final Class<?> ENTITY_LIVING;
     private static final Class<?> ARMOR_STAND;
@@ -42,6 +44,7 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
     private static final Constructor<?> PACKET_META_INSTANCE;
     private static final Constructor<?> PACKET_EQUIP_INSTANCE;
     private static final Constructor<?> PACKET_TELEPORT_INSTANCE;
+    private static final Constructor<?> PACKET_DESTROY_INSTANCE;
     private static final Constructor<?> ARMOR_STAND_INSTANCE;
     private static final Constructor<?> VECTOR_3F_INSTANCE;
 
@@ -56,7 +59,6 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
     private static final MethodHandle DATA_WATCHER_SET;
 
     private static final Field NO_CLIP;
-    private static final Object VECTOR_3F;
 
     private static final Object MAINHAND;
     private static final Object OFFHAND;
@@ -91,6 +93,10 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
         PACKET_TELEPORT = ReflectionUtils.getNMSClass(
                 "network.protocol.game",
                 "PacketPlayOutEntityTeleport"
+        );
+        PACKET_DESTROY = ReflectionUtils.getNMSClass(
+                "network.protocol.game",
+                "PacketPlayOutEntityDestroy"
         );
         ENTITY = ReflectionUtils.getNMSClass(
                 "world.entity",
@@ -131,7 +137,7 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
         assert ENTITY != null && ARMOR_STAND != null && WORLD != null &&
                 PACKET_SPAWN_LIVING != null && PACKET_METADATA != null &&
                 PACKET_EQUIPMENT != null && PACKET_TELEPORT != null &&
-                DATA_WATCHER_OBJECT != null &&
+                PACKET_DESTROY != null && DATA_WATCHER_OBJECT != null &&
                 ENUM_ITEM_SLOT != null && DATA_WATCHER_SERIALIZER != null;
 
         try {
@@ -151,6 +157,9 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
             );
             PACKET_TELEPORT_INSTANCE = PACKET_TELEPORT.getConstructor(
                     ENTITY
+            );
+            PACKET_DESTROY_INSTANCE = PACKET_DESTROY.getConstructor(
+                    int[].class
             );
 
             ARMOR_STAND_INSTANCE = ARMOR_STAND.getConstructor(
@@ -200,10 +209,9 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
             );
 
             NO_CLIP = ARMOR_STAND.getField(XMaterial.getVersion() == 17 ? "P" : "Q");
-            VECTOR_3F = DATA_WATCHER_SERIALIZER.getField("k").get(null);
 
             DATA_WATCHER_SET = MethodHandles.lookup().findVirtual(
-                DATAWATCHER, "b", MethodType.methodType(void.class, VECTOR_3F.getClass(), Object.class)
+                DATAWATCHER, "register", MethodType.methodType(void.class, DATA_WATCHER_OBJECT, Object.class)
             );
 
             MAINHAND = ENUM_ITEM_SLOT.getDeclaredField("a").get(null);
@@ -230,7 +238,10 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
     public void setup(World world) {
         try {
             armorStand = ARMOR_STAND_INSTANCE.newInstance(getNMSWorld(world), 0, 0, 0);
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            SET_INVISIBLE.invoke(armorStand, true);
+            SET_MARKER.invoke(armorStand, true);
+            NO_CLIP.set(armorStand, true);
+        } catch (Throwable e) {
             throw new RuntimeException(e);
         }
     }
@@ -254,6 +265,19 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
                 location.getY(), location.getZ(),
                 location.getYaw(), location.getPitch()
         );
+
+        new KRunnable(task -> {
+            ArmorStand bukkitStand = getEntity();
+            update(players, new ItemStack[] {
+                    bukkitStand.getItemInHand(),
+                    null,
+                    bukkitStand.getHelmet(),
+                    bukkitStand.getChestplate(),
+                    bukkitStand.getLeggings(),
+                    bukkitStand.getBoots()
+
+            }, rotate(rotations), true);
+        }).runTaskLaterAsynchronously(AsyncArmorStandTest.getMain(), 5L);
 
         Object spawnPacket = PACKET_LIVING_INSTANCE.newInstance(
                 armorStand
@@ -282,7 +306,7 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
         for (int i = 0; i < 6; i++) {
             list.add(new Pair<>(getPair(i), AS_NMS_COPY.invoke(stack[i])));
         }
-        packets[1] = PACKET_EQUIP_INSTANCE.newInstance(
+        packets[setData ? 1 : 0] = PACKET_EQUIP_INSTANCE.newInstance(
                 GET_ID.invoke(armorStand), list
         );
         players.forEach(p -> ReflectionUtils.sendPacket(p, packets));
@@ -338,5 +362,12 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
             return data;
         } catch (Throwable ignored) {}
         return null;
+    }
+
+    @SneakyThrows @Override
+    public void destroy(Collection<Player> players) {
+        // Either way I get a warning, why IntelliJ?
+        Object packet = PACKET_DESTROY_INSTANCE.newInstance((Object) new int[] {(int) GET_ID.invoke(armorStand)});
+        players.forEach(p -> ReflectionUtils.sendPacket(p, packet));
     }
 }

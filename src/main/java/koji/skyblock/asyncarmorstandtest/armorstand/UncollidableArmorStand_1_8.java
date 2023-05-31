@@ -1,6 +1,8 @@
 package koji.skyblock.asyncarmorstandtest.armorstand;
 
+import koji.developerkit.runnable.KRunnable;
 import koji.developerkit.utils.xseries.ReflectionUtils;
+import koji.skyblock.asyncarmorstandtest.AsyncArmorStandTest;
 import koji.skyblock.asyncarmorstandtest.UncollidableArmorStand;
 import net.minecraft.server.v1_8_R3.*;
 import org.bukkit.Location;
@@ -38,16 +40,19 @@ public class UncollidableArmorStand_1_8 implements UncollidableArmorStand {
         }
         stand.setLocation(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
 
-        ArmorStand bukkitStand = getEntity();
-        update(players, new ItemStack[] {
-                bukkitStand.getItemInHand(),
-                null,
-                bukkitStand.getHelmet(),
-                bukkitStand.getChestplate(),
-                bukkitStand.getLeggings(),
-                bukkitStand.getBoots()
+        new KRunnable(task -> {
+            ArmorStand bukkitStand = getEntity();
+            update(players, new ItemStack[] {
+                    bukkitStand.getItemInHand(),
+                    null,
+                    bukkitStand.getHelmet(),
+                    bukkitStand.getChestplate(),
+                    bukkitStand.getLeggings(),
+                    bukkitStand.getBoots()
 
-        }, rotate(rotations), true);
+            }, rotate(rotations), true);
+        }).runTaskLaterAsynchronously(AsyncArmorStandTest.getMain(), 5L);
+
         PacketPlayOutSpawnEntityLiving packet = new PacketPlayOutSpawnEntityLiving(stand);
         players.forEach(p -> ((CraftPlayer) p).getHandle().playerConnection.sendPacket(packet));
 
@@ -102,7 +107,8 @@ public class UncollidableArmorStand_1_8 implements UncollidableArmorStand {
     }
 
     @Override
-    public void refreshVisibility(Collection<Player> players) {
-
+    public void destroy(Collection<Player> players) {
+        PacketPlayOutEntityDestroy packet = new PacketPlayOutEntityDestroy(stand.getId());
+        players.forEach(p -> ((CraftPlayer) p).getHandle().playerConnection.sendPacket(packet));
     }
 }

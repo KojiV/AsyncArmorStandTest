@@ -19,11 +19,11 @@ public class PetStandRunnable extends BukkitRunnable {
         DISTANCE = 0.42;
     }
 
-    private final AsyncArmorStandTest.PlayerInstance instance;
+    private final PlayerInstance instance;
     private final Player player;
     @Setter private SkyblockWorld world;
 
-    public PetStandRunnable(AsyncArmorStandTest.PlayerInstance p) {
+    public PetStandRunnable(PlayerInstance p) {
         instance = p;
         player = p.getPlayer();
         world = SkyblockWorld.getWorld(p.getPlayer().getWorld());
@@ -73,8 +73,8 @@ public class PetStandRunnable extends BukkitRunnable {
 
         if(nameTagLoc.getWorld() != player.getWorld()) {
             nameTagLoc.getWorld().getPlayers().forEach(p -> {
-                AsyncArmorStandTest.getHider().hideEntity(p, instance.getArmorStands()[0].getEntity());
-                AsyncArmorStandTest.getHider().hideEntity(p, instance.getArmorStands()[1].getEntity());
+                getHider().hideEntity(p, instance.getArmorStands()[0].getEntity());
+                getHider().hideEntity(p, instance.getArmorStands()[1].getEntity());
             });
             instance.createArmorStands();
         }
@@ -102,10 +102,9 @@ public class PetStandRunnable extends BukkitRunnable {
     }
 
     @Override public synchronized void cancel() throws IllegalStateException {
-        Arrays.stream(instance.getArmorStands()).forEach(a -> {
-            AsyncArmorStandTest.getHider().hideEntity(player, a.getEntity());
-            a.getEntity().remove();
-        });
+        Arrays.stream(instance.getArmorStands()).forEach(a ->
+                getHider().hideEntity(player, a.getEntity())
+        );
         super.cancel();
     }
 }

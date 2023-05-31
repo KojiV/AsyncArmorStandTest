@@ -94,6 +94,14 @@ public class TestCMD extends KCommand {
             visible = true;
         } else {
             AsyncArmorStandTest.toggleVisibility(p);
+            /*if(!visible) {
+                nameTag.refreshVisibility(Collections.singleton(p));
+            } else {
+                PacketPlayOutEntityDestroy destroy = new PacketPlayOutEntityDestroy(nameTag.getEntity().getEntityId());
+                ReflectionUtils.sendPacket(p, destroy);
+                //AsyncArmorStandTest.getHider().hideEntity(p, nameTag.getEntity());
+            }
+            visible = !visible;*/
         }
         return false;
     }

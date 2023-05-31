@@ -74,7 +74,7 @@ public interface UncollidableArmorStand {
 
     Object rotate(float[][] rotations);
 
-    void refreshVisibility(Collection<Player> players);
+    void destroy(Collection<Player> players);
 
     default float[] fromEulerAngle(EulerAngle angle) {
         return new float[] {
