@@ -22,7 +22,8 @@ import java.util.Set;
 import java.util.UUID;
 
 // TODO: 1. Get visual toggling working
-//       2. Get rotation of the head to rotate around the stand, NOT the name tag.
+//       2. Update other Uncollidables to be correct with 1_8
+//       3. Get rotation of the head to rotate around the stand, NOT the name tag.
 public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
 
     @Getter private static AsyncArmorStandTest main;
