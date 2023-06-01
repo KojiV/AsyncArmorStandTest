@@ -8,6 +8,8 @@ import koji.developerkit.utils.xseries.XMaterial;
 import koji.skyblock.asyncarmorstandtest.AsyncArmorStandTest;
 import koji.skyblock.asyncarmorstandtest.UncollidableArmorStand;
 import lombok.SneakyThrows;
+import net.minecraft.network.syncher.DataWatcher;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
@@ -47,6 +49,7 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
     private static final Constructor<?> PACKET_DESTROY_INSTANCE;
     private static final Constructor<?> ARMOR_STAND_INSTANCE;
     private static final Constructor<?> VECTOR_3F_INSTANCE;
+    private static final Constructor<?> DATA_WATCHER_INSTANCE;
 
     private static final MethodHandle SET_LOCATION;
     private static final MethodHandle SET_INVISIBLE;
@@ -57,6 +60,7 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
     private static final MethodHandle GET_ID;
     private static final MethodHandle AS_NMS_COPY;
     private static final MethodHandle DATA_WATCHER_SET;
+    private static final MethodHandle DATA_WATCHER_PACK_DIRTY;
 
     private static final Field NO_CLIP;
 
@@ -76,7 +80,7 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
     static {
         PACKET_SPAWN_LIVING = ReflectionUtils.getNMSClass(
                 "network.protocol.game",
-                "PacketPlayOutSpawnEntityLiving"
+                "PacketPlayOutSpawnEntity" + (XMaterial.getVersion() == 19 ? "" : "Living")
         );
         DATAWATCHER = ReflectionUtils.getNMSClass(
                 "network.syncher",
@@ -138,20 +142,19 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
                 PACKET_SPAWN_LIVING != null && PACKET_METADATA != null &&
                 PACKET_EQUIPMENT != null && PACKET_TELEPORT != null &&
                 PACKET_DESTROY != null && DATA_WATCHER_OBJECT != null &&
-                ENUM_ITEM_SLOT != null && DATA_WATCHER_SERIALIZER != null;
+                DATAWATCHER != null && ENUM_ITEM_SLOT != null && DATA_WATCHER_SERIALIZER != null;
 
         try {
-            Class<?> VECTOR_3F_CLASS = Class.forName(XMaterial.supports(19) ?
-                    "net.minecraft.core.Vector3f" :
-                    "com.mojang.math.Vector3fa"
-            );
+            Class<?> VECTOR_3F_CLASS = Class.forName("net.minecraft.core.Vector3f");
 
             PACKET_LIVING_INSTANCE = PACKET_SPAWN_LIVING.getConstructor(
-                    ENTITY_LIVING
+                    XMaterial.getVersion() == 19 ? ENTITY : ENTITY_LIVING
             );
-            PACKET_META_INSTANCE = PACKET_METADATA.getConstructor(
-                    int.class, DATAWATCHER, boolean.class
-            );
+
+            PACKET_META_INSTANCE = XMaterial.getVersion() == 19 ?
+                    PACKET_METADATA.getConstructor(int.class, List.class) :
+                    PACKET_METADATA.getConstructor(int.class, DATAWATCHER, boolean.class);
+
             PACKET_EQUIP_INSTANCE = PACKET_EQUIPMENT.getConstructor(
                     int.class, List.class
             );
@@ -168,6 +171,7 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
             VECTOR_3F_INSTANCE = VECTOR_3F_CLASS.getConstructor(
                     float.class, float.class, float.class
             );
+            DATA_WATCHER_INSTANCE = DATAWATCHER.getConstructor(ENTITY);
 
             SET_LOCATION = MethodHandles.lookup().findVirtual(
                     ENTITY,
@@ -184,12 +188,14 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
             );
             SET_MARKER = MethodHandles.lookup().findVirtual(
                     ARMOR_STAND,
-                    XMaterial.getVersion() == 17 ? "setMarker" : "t",
+                    XMaterial.getVersion() == 17 ? "setMarker" :
+                            getSubVersion() != 4 ? "t" : "u",
                     MethodType.methodType(void.class, boolean.class)
             );
             GET_DATA_WATCHER = MethodHandles.lookup().findVirtual(
                     ENTITY,
-                    XMaterial.getVersion() == 17 ? "getDataWatcher" : "ai",
+                    XMaterial.getVersion() == 17 ? "getDataWatcher" : nineteenTwoOrBelow() ? "ai" :
+                            getSubVersion() == 3 ? "al" : "aj",
                     MethodType.methodType(DATAWATCHER)
             );
             GET_BUKKIT_ENTITY = MethodHandles.lookup().findVirtual(
@@ -199,7 +205,8 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
             );
             GET_ID = MethodHandles.lookup().findVirtual(
                     ENTITY,
-                    XMaterial.getVersion() == 17 ? "getId" : "ae",
+                    XMaterial.getVersion() == 17 ? "getId" : nineteenTwoOrBelow() ? "ae" :
+                            getSubVersion() == 3 ? "ah" : "af",
                     MethodType.methodType(int.class)
             );
             AS_NMS_COPY = MethodHandles.lookup().findStatic(
@@ -211,8 +218,13 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
             NO_CLIP = ARMOR_STAND.getField(XMaterial.getVersion() == 17 ? "P" : "Q");
 
             DATA_WATCHER_SET = MethodHandles.lookup().findVirtual(
-                DATAWATCHER, "register", MethodType.methodType(void.class, DATA_WATCHER_OBJECT, Object.class)
+                    DATAWATCHER,
+                    XMaterial.getVersion() >= 18 ? "b" : "set",
+                    MethodType.methodType(void.class, DATA_WATCHER_OBJECT, Object.class)
             );
+            DATA_WATCHER_PACK_DIRTY = XMaterial.getVersion() == 19 ? MethodHandles.lookup().findVirtual(
+                    DATAWATCHER, "c", MethodType.methodType(List.class)
+            ) : null;
 
             MAINHAND = ENUM_ITEM_SLOT.getDeclaredField("a").get(null);
             OFFHAND = ENUM_ITEM_SLOT.getDeclaredField("b").get(null);
@@ -221,12 +233,24 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
             LEGGINGS = ENUM_ITEM_SLOT.getDeclaredField("d").get(null);
             BOOTS = ENUM_ITEM_SLOT.getDeclaredField("c").get(null);
 
-            HEAD = ARMOR_STAND.getDeclaredField("bH").get(null);
-            BODY = ARMOR_STAND.getDeclaredField("bI").get(null);
-            LEFT_ARM = ARMOR_STAND.getDeclaredField("bJ").get(null);
-            RIGHT_ARM = ARMOR_STAND.getDeclaredField("bK").get(null);
-            LEFT_LEG = ARMOR_STAND.getDeclaredField("bL").get(null);
-            RIGHT_LEG = ARMOR_STAND.getDeclaredField("bM").get(null);
+            HEAD = ARMOR_STAND.getDeclaredField(
+                    XMaterial.getVersion() == 19 && getSubVersion() == 4 ? "bC" : "bH"
+            ).get(null);
+            BODY = ARMOR_STAND.getDeclaredField(
+                    XMaterial.getVersion() == 19 && getSubVersion() == 4 ? "bD" : "bI"
+            ).get(null);
+            LEFT_ARM = ARMOR_STAND.getDeclaredField(
+                    XMaterial.getVersion() == 19 && getSubVersion() == 4 ? "bE" : "bJ"
+            ).get(null);
+            RIGHT_ARM = ARMOR_STAND.getDeclaredField(
+                    XMaterial.getVersion() == 19 && getSubVersion() == 4 ? "bF" : "bK"
+            ).get(null);
+            LEFT_LEG = ARMOR_STAND.getDeclaredField(
+                    XMaterial.getVersion() == 19 && getSubVersion() == 4 ? "bG" : "bL"
+            ).get(null);
+            RIGHT_LEG = ARMOR_STAND.getDeclaredField(
+                    XMaterial.getVersion() == 19 && getSubVersion() == 4 ? "bH" : "bM"
+            ).get(null);
         } catch (NoSuchMethodException | NoSuchFieldException | IllegalAccessException | ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
@@ -297,7 +321,10 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
     @Override
     public void update(Collection<Player> players, ItemStack[] stack, Object dataWatcher, boolean setData) {
         Object[] packets = new Object[2];
-        packets[0] = PACKET_META_INSTANCE.newInstance(
+        packets[0] = XMaterial.getVersion() == 19 ? PACKET_META_INSTANCE.newInstance(
+                GET_ID.invoke(armorStand),
+                DATA_WATCHER_PACK_DIRTY.invoke(dataWatcher)
+        ) : PACKET_META_INSTANCE.newInstance(
                 GET_ID.invoke(armorStand),
                 dataWatcher,
                 true
@@ -344,14 +371,12 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
     @Override
     public Object rotate(float[][] rotations) {
         try {
-            Object data = GET_DATA_WATCHER.invoke(armorStand);
+            DataWatcher data = (DataWatcher) GET_DATA_WATCHER.invoke(armorStand);
             Object[] dataWatcherObjects = new Object[] {
                     HEAD, BODY, LEFT_ARM, RIGHT_ARM, LEFT_LEG, RIGHT_LEG
             };
             for(int i = 0; i < 6; i++) {
-                float[] array;
-                if(i >= rotations.length) array = new float[3];
-                else array = rotations[i];
+                float[] array = rotations[i];
 
                 DATA_WATCHER_SET.invoke(
                         data,
@@ -360,7 +385,9 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
                 );
             }
             return data;
-        } catch (Throwable ignored) {}
+        } catch (Throwable ex) {
+            ex.printStackTrace();
+        }
         return null;
     }
 
@@ -369,5 +396,13 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
         // Either way I get a warning, why IntelliJ?
         Object packet = PACKET_DESTROY_INSTANCE.newInstance((Object) new int[] {(int) GET_ID.invoke(armorStand)});
         players.forEach(p -> ReflectionUtils.sendPacket(p, packet));
+    }
+
+    public static boolean nineteenTwoOrBelow() {
+        return XMaterial.getVersion() == 18 || getSubVersion() < 3;
+    }
+
+    public static int getSubVersion() {
+        return Integer.parseInt(Bukkit.getBukkitVersion().split("-")[0].split("\\.")[2]);
     }
 }
