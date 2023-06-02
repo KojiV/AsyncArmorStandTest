@@ -9,6 +9,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
 
+import java.util.Collections;
 import java.util.Set;
 
 import static koji.skyblock.asyncarmorstandtest.AsyncArmorStandTest.*;
@@ -37,7 +38,7 @@ public class TestCMD extends KCommand {
             override = Boolean.parseBoolean(args[7]);
         }
 
-        if(override) { //if (stand == null || override) {
+        if(stand == null || override) { //if (stand == null || override) {
             for (int i = 0; i < 2; i++) {
                 Set<Player> canSeePets = SkyblockWorld.getWorld(p.getWorld()).getCanSeePets()[i];
                 if (stand != null) canSeePets.forEach(pl ->
@@ -93,15 +94,27 @@ public class TestCMD extends KCommand {
             }
             visible = true;
         } else {
-            AsyncArmorStandTest.toggleVisibility(p);
+            ArmorStand itemStand = stand.getEntity();
+            if(visible) itemStand.setItemInHand(null);
+            else itemStand.setItemInHand(XMaterial.PLAYER_HEAD.parseItem());
+            stand.update(Collections.singleton(p), new float[][]{
+                    new float[3],
+                    new float[3],
+                    new float[3],
+                    ARM_ANGLES[getCorrespondent().get(p.getUniqueId())],
+                    new float[3],
+                    new float[3]
+            }, false);
+
+            //AsyncArmorStandTest.toggleVisibility(p);
             /*if(!visible) {
                 nameTag.refreshVisibility(Collections.singleton(p));
             } else {
                 PacketPlayOutEntityDestroy destroy = new PacketPlayOutEntityDestroy(nameTag.getEntity().getEntityId());
                 ReflectionUtils.sendPacket(p, destroy);
                 //AsyncArmorStandTest.getHider().hideEntity(p, nameTag.getEntity());
-            }
-            visible = !visible;*/
+            }*/
+            visible = !visible;
         }
         return false;
     }

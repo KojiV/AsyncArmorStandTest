@@ -53,6 +53,17 @@ public interface UncollidableArmorStand {
                 stand.getBoots()
         }, setData);
     }
+    default void update(Collection<Player> players, float[][] floats, boolean setData) {
+        ArmorStand stand = getEntity();
+        update(players, new ItemStack[] {
+                stand.getItemInHand(),
+                stand.getItemInHand(),
+                stand.getHelmet(),
+                stand.getChestplate(),
+                stand.getLeggings(),
+                stand.getBoots()
+        }, rotate(floats), setData);
+    }
     default void update(Collection<Player> players, Object dataWatcher) {
         ArmorStand stand = getEntity();
         update(players, new ItemStack[] {
