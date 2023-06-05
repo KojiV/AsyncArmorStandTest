@@ -108,12 +108,12 @@ public class UncollidableArmorStand_1_15 implements UncollidableArmorStand {
     public Object rotate(float[][] rotations) {
         DataWatcher data = new DataWatcher(stand);
         DataWatcherObject<Vector3f>[] labels = new DataWatcherObject[] {
-                EntityArmorStand.b, // Head
-                EntityArmorStand.c, // Body
-                EntityArmorStand.d, // Left Arm
-                EntityArmorStand.e, // Right Arm
-                EntityArmorStand.f, // Left Leg
-                EntityArmorStand.g // Right Leg
+                EntityArmorStand.c, // Head
+                EntityArmorStand.d, // Body
+                EntityArmorStand.e, // Left Arm
+                EntityArmorStand.f, // Right Arm
+                EntityArmorStand.g, // Left Leg
+                EntityArmorStand.bp // Right Leg
         };
         for(int i = 0; i < 6; i++) {
             float[] array = rotations[i];
