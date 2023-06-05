@@ -123,7 +123,7 @@ Update can be called with multiple things, but the main method uses
 - **Collection<Player>** to represent the players that will receive the armor stand update.
 - **org.bukkit.inventory.ItemStack[]** to represent the equipment the armor stand will wear. The order goes like this:
   - Main hand
-  - Offhand (this won't do anything for an armor stand)
+  - Offhand 
   - Helmet
   - Chestplate
   - Leggings
@@ -183,7 +183,7 @@ The rotate method:
 ArmorStand stand = getEntity();
 update(players, new ItemStack[] {
         stand.getItemInHand(),
-        stand.getItemInHand(),
+        null,
         stand.getHelmet(),
         stand.getChestplate(),
         stand.getLeggings(),
