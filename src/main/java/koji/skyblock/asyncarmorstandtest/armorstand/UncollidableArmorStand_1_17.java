@@ -233,24 +233,13 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
             LEGGINGS = ENUM_ITEM_SLOT.getDeclaredField("d").get(null);
             BOOTS = ENUM_ITEM_SLOT.getDeclaredField("c").get(null);
 
-            HEAD = ARMOR_STAND.getDeclaredField(
-                    XMaterial.getVersion() == 19 && getSubVersion() == 4 ? "bC" : "bH"
-            ).get(null);
-            BODY = ARMOR_STAND.getDeclaredField(
-                    XMaterial.getVersion() == 19 && getSubVersion() == 4 ? "bD" : "bI"
-            ).get(null);
-            LEFT_ARM = ARMOR_STAND.getDeclaredField(
-                    XMaterial.getVersion() == 19 && getSubVersion() == 4 ? "bE" : "bJ"
-            ).get(null);
-            RIGHT_ARM = ARMOR_STAND.getDeclaredField(
-                    XMaterial.getVersion() == 19 && getSubVersion() == 4 ? "bF" : "bK"
-            ).get(null);
-            LEFT_LEG = ARMOR_STAND.getDeclaredField(
-                    XMaterial.getVersion() == 19 && getSubVersion() == 4 ? "bG" : "bL"
-            ).get(null);
-            RIGHT_LEG = ARMOR_STAND.getDeclaredField(
-                    XMaterial.getVersion() == 19 && getSubVersion() == 4 ? "bH" : "bM"
-            ).get(null);
+            boolean newestNames = XMaterial.getVersion() == 19 && getSubVersion() == 4;
+            HEAD = ARMOR_STAND.getDeclaredField(newestNames ? "bC" : "bH").get(null);
+            BODY = ARMOR_STAND.getDeclaredField(newestNames ? "bD" : "bI").get(null);
+            LEFT_ARM = ARMOR_STAND.getDeclaredField(newestNames ? "bE" : "bJ").get(null);
+            RIGHT_ARM = ARMOR_STAND.getDeclaredField(newestNames ? "bF" : "bK").get(null);
+            LEFT_LEG = ARMOR_STAND.getDeclaredField(newestNames ? "bG" : "bL").get(null);
+            RIGHT_LEG = ARMOR_STAND.getDeclaredField(newestNames ? "bH" : "bM").get(null);
         } catch (NoSuchMethodException | NoSuchFieldException | IllegalAccessException | ClassNotFoundException e) {
             throw new RuntimeException(e);
         }

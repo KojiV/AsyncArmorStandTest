@@ -110,14 +110,14 @@ public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
         Collection<Player> player = Collections.singleton(p);
         Set<UncollidableArmorStand> stands = SkyblockWorld.getWorld(p.getWorld()).getAllArmorStand();
 
-        if(boo) stands.forEach(a -> a.spawn(player, new float[][] {
-                new float[3],
-                new float[3],
-                new float[3],
-                ARM_ANGLES[AsyncArmorStandTest.getCorrespondent().get(p.getUniqueId())],
-                new float[3],
-                new float[3]
-        }, false));
+            if(boo) stands.forEach(a -> a.spawn(player, new float[][] {
+                    new float[3],
+                    new float[3],
+                    new float[3],
+                    ARM_ANGLES[AsyncArmorStandTest.getCorrespondent().get(p.getUniqueId())],
+                    new float[3],
+                    new float[3]
+            }, false));
         else stands.forEach(a -> a.destroy(player));
     }
 
