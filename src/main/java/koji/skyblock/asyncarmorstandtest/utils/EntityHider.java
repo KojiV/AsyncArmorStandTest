@@ -1,4 +1,4 @@
-package koji.skyblock.asyncarmorstandtest;
+package koji.skyblock.asyncarmorstandtest.utils;
 
 import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.ProtocolLibrary;

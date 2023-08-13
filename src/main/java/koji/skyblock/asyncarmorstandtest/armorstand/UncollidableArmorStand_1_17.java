@@ -1,12 +1,10 @@
 package koji.skyblock.asyncarmorstandtest.armorstand;
 
 import com.mojang.datafixers.util.Pair;
-import koji.developerkit.KBase;
-import koji.developerkit.runnable.KRunnable;
 import koji.developerkit.utils.xseries.ReflectionUtils;
 import koji.developerkit.utils.xseries.XMaterial;
-import koji.skyblock.asyncarmorstandtest.AsyncArmorStandTest;
-import koji.skyblock.asyncarmorstandtest.UncollidableArmorStand;
+import koji.skyblock.asyncarmorstandtest.utils.MethodHandleAssistant;
+import koji.skyblock.asyncarmorstandtest.utils.UncollidableArmorStand;
 import lombok.SneakyThrows;
 import net.minecraft.network.syncher.DataWatcher;
 import org.bukkit.Bukkit;
@@ -18,15 +16,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
-public class UncollidableArmorStand_1_17 extends KBase implements UncollidableArmorStand {
+@SuppressWarnings("all")
+public class UncollidableArmorStand_1_17 extends MethodHandleAssistant implements UncollidableArmorStand {
 
     private static final Class<?> PACKET_SPAWN_LIVING;
     private static final Class<?> DATAWATCHER;
@@ -42,14 +37,13 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
     private static final Class<?> ITEM_STACK;
     private static final Class<?> DATA_WATCHER_OBJECT;
 
-    private static final Constructor<?> PACKET_LIVING_INSTANCE;
-    private static final Constructor<?> PACKET_META_INSTANCE;
-    private static final Constructor<?> PACKET_EQUIP_INSTANCE;
-    private static final Constructor<?> PACKET_TELEPORT_INSTANCE;
-    private static final Constructor<?> PACKET_DESTROY_INSTANCE;
-    private static final Constructor<?> ARMOR_STAND_INSTANCE;
-    private static final Constructor<?> VECTOR_3F_INSTANCE;
-    private static final Constructor<?> DATA_WATCHER_INSTANCE;
+    private static final MethodHandle PACKET_LIVING_INSTANCE;
+    private static final MethodHandle PACKET_META_INSTANCE;
+    private static final MethodHandle PACKET_EQUIP_INSTANCE;
+    private static final MethodHandle PACKET_TELEPORT_INSTANCE;
+    private static final MethodHandle PACKET_DESTROY_INSTANCE;
+    private static final MethodHandle ARMOR_STAND_INSTANCE;
+    private static final MethodHandle VECTOR_3F_INSTANCE;
 
     private static final MethodHandle SET_LOCATION;
     private static final MethodHandle SET_INVISIBLE;
@@ -80,7 +74,7 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
     static {
         PACKET_SPAWN_LIVING = ReflectionUtils.getNMSClass(
                 "network.protocol.game",
-                "PacketPlayOutSpawnEntity" + (XMaterial.getVersion() == 19 ? "" : "Living")
+                "PacketPlayOutSpawnEntity" + (XMaterial.getVersion() >= 19 ? "" : "Living")
         );
         DATAWATCHER = ReflectionUtils.getNMSClass(
                 "network.syncher",
@@ -147,84 +141,55 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
         try {
             Class<?> VECTOR_3F_CLASS = Class.forName("net.minecraft.core.Vector3f");
 
-            PACKET_LIVING_INSTANCE = PACKET_SPAWN_LIVING.getConstructor(
-                    XMaterial.getVersion() == 19 ? ENTITY : ENTITY_LIVING
+            PACKET_LIVING_INSTANCE = getConstructor(
+                    PACKET_SPAWN_LIVING, XMaterial.getVersion() >= 19 ? ENTITY : ENTITY_LIVING
+            );
+            PACKET_META_INSTANCE = XMaterial.getVersion() >= 19 && getSubVersion() >= 3 ?
+                    getConstructor(PACKET_METADATA, int.class, List.class) :
+                    getConstructor(PACKET_METADATA, int.class, DATAWATCHER, boolean.class);
+            PACKET_EQUIP_INSTANCE = getConstructor(PACKET_EQUIPMENT, int.class, List.class);
+            PACKET_TELEPORT_INSTANCE = getConstructor(PACKET_TELEPORT, ENTITY);
+            PACKET_DESTROY_INSTANCE = getConstructor(PACKET_DESTROY, int[].class);
+            ARMOR_STAND_INSTANCE = getConstructor(ARMOR_STAND, WORLD, double.class, double.class, double.class);
+            VECTOR_3F_INSTANCE = getConstructor(VECTOR_3F_CLASS, float.class, float.class, float.class);
+
+            SET_LOCATION = getMethod(ENTITY, MethodType.methodType(
+                    void.class,
+                    double.class, double.class, double.class, float.class, float.class
+            ), "setLocation", "a");
+
+            SET_INVISIBLE = getMethod(ARMOR_STAND, MethodType.methodType(void.class, boolean.class),
+                    "setInvisible", "j"
             );
 
-            PACKET_META_INSTANCE = XMaterial.getVersion() == 19 ?
-                    PACKET_METADATA.getConstructor(int.class, List.class) :
-                    PACKET_METADATA.getConstructor(int.class, DATAWATCHER, boolean.class);
-
-            PACKET_EQUIP_INSTANCE = PACKET_EQUIPMENT.getConstructor(
-                    int.class, List.class
-            );
-            PACKET_TELEPORT_INSTANCE = PACKET_TELEPORT.getConstructor(
-                    ENTITY
-            );
-            PACKET_DESTROY_INSTANCE = PACKET_DESTROY.getConstructor(
-                    int[].class
+            SET_MARKER = getMethod(ARMOR_STAND, MethodType.methodType(void.class, boolean.class),
+                    "setMarker", "t", "u"
             );
 
-            ARMOR_STAND_INSTANCE = ARMOR_STAND.getConstructor(
-                    WORLD, double.class, double.class, double.class
+            GET_DATA_WATCHER = getMethod(
+                    ENTITY, MethodType.methodType(DATAWATCHER),
+                    "getDataWatcher", "ai", "al", "aj"
             );
-            VECTOR_3F_INSTANCE = VECTOR_3F_CLASS.getConstructor(
-                    float.class, float.class, float.class
-            );
-            DATA_WATCHER_INSTANCE = DATAWATCHER.getConstructor(ENTITY);
 
-            SET_LOCATION = MethodHandles.lookup().findVirtual(
-                    ENTITY,
-                    XMaterial.getVersion() == 17 ? "setLocation" : "a",
-                    MethodType.methodType(
-                            void.class,
-                            double.class, double.class, double.class, float.class, float.class
-                    )
-            );
-            SET_INVISIBLE = MethodHandles.lookup().findVirtual(
-                    ARMOR_STAND,
-                    XMaterial.getVersion() == 17 ? "setInvisible" : "j",
-                    MethodType.methodType(void.class, boolean.class)
-            );
-            SET_MARKER = MethodHandles.lookup().findVirtual(
-                    ARMOR_STAND,
-                    XMaterial.getVersion() == 17 ? "setMarker" :
-                            getSubVersion() != 4 ? "t" : "u",
-                    MethodType.methodType(void.class, boolean.class)
-            );
-            GET_DATA_WATCHER = MethodHandles.lookup().findVirtual(
-                    ENTITY,
-                    XMaterial.getVersion() == 17 ? "getDataWatcher" : nineteenTwoOrBelow() ? "ai" :
-                            getSubVersion() == 3 ? "al" : "aj",
-                    MethodType.methodType(DATAWATCHER)
-            );
-            GET_BUKKIT_ENTITY = MethodHandles.lookup().findVirtual(
-                    ENTITY,
-                    "getBukkitEntity",
-                    MethodType.methodType(CRAFT_ENTITY)
-            );
-            GET_ID = MethodHandles.lookup().findVirtual(
-                    ENTITY,
-                    XMaterial.getVersion() == 17 ? "getId" : nineteenTwoOrBelow() ? "ae" :
-                            getSubVersion() == 3 ? "ah" : "af",
-                    MethodType.methodType(int.class)
-            );
-            AS_NMS_COPY = MethodHandles.lookup().findStatic(
+            GET_BUKKIT_ENTITY = getMethod(ENTITY, MethodType.methodType(CRAFT_ENTITY), "getBukkitEntity");
+
+            GET_ID = getMethod(ENTITY, MethodType.methodType(int.class), "getId", "ae", "ah", "af");
+
+            AS_NMS_COPY = getMethod(
                     ReflectionUtils.getCraftClass("inventory.CraftItemStack"),
-                    "asNMSCopy",
-                    MethodType.methodType(ITEM_STACK, ItemStack.class)
+                    MethodType.methodType(ITEM_STACK, ItemStack.class), true, "asNMSCopy"
             );
 
             NO_CLIP = ARMOR_STAND.getField(XMaterial.getVersion() == 17 ? "P" : "Q");
 
-            DATA_WATCHER_SET = MethodHandles.lookup().findVirtual(
-                    DATAWATCHER,
-                    XMaterial.getVersion() >= 18 ? "b" : "set",
-                    MethodType.methodType(void.class, DATA_WATCHER_OBJECT, Object.class)
+            DATA_WATCHER_SET = getMethod(DATAWATCHER,
+                    MethodType.methodType(void.class, DATA_WATCHER_OBJECT, Object.class),
+                    "b", "set"
             );
-            DATA_WATCHER_PACK_DIRTY = XMaterial.getVersion() == 19 ? MethodHandles.lookup().findVirtual(
-                    DATAWATCHER, "c", MethodType.methodType(List.class)
-            ) : null;
+
+            DATA_WATCHER_PACK_DIRTY = XMaterial.getVersion() >= 19 ?
+                    getMethod(DATAWATCHER, MethodType.methodType(List.class), "c") :
+                    null;
 
             MAINHAND = ENUM_ITEM_SLOT.getDeclaredField("a").get(null);
             OFFHAND = ENUM_ITEM_SLOT.getDeclaredField("b").get(null);
@@ -240,20 +205,25 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
             RIGHT_ARM = ARMOR_STAND.getDeclaredField(newestNames ? "bF" : "bK").get(null);
             LEFT_LEG = ARMOR_STAND.getDeclaredField(newestNames ? "bG" : "bL").get(null);
             RIGHT_LEG = ARMOR_STAND.getDeclaredField(newestNames ? "bH" : "bM").get(null);
-        } catch (NoSuchMethodException | NoSuchFieldException | IllegalAccessException | ClassNotFoundException e) {
+        } catch (NoSuchFieldException | IllegalAccessException | ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private Object armorStand;
+    private Object stand;
+    private final Set<Player> visibleTo;
+
+    public UncollidableArmorStand_1_17() {
+        visibleTo = new HashSet<>();
+    }
 
     @Override
     public void setup(World world) {
         try {
-            armorStand = ARMOR_STAND_INSTANCE.newInstance(getNMSWorld(world), 0, 0, 0);
-            SET_INVISIBLE.invoke(armorStand, true);
-            SET_MARKER.invoke(armorStand, true);
-            NO_CLIP.set(armorStand, true);
+            stand = ARMOR_STAND_INSTANCE.invoke(getNMSWorld(world), 0, 0, 0);
+            SET_INVISIBLE.invoke(stand, true);
+            SET_MARKER.invoke(stand, true);
+            NO_CLIP.set(stand, true);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
@@ -264,57 +234,64 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
     public LivingEntity spawn(Collection<Player> players, Location location, float[][] rotations, boolean overwrite) {
         Object craftWorld = getNMSWorld(location.getWorld());
 
-        if (armorStand == null || overwrite) {
-            armorStand = ARMOR_STAND_INSTANCE.newInstance(
-                    craftWorld, location.getX(), location.getY(), location.getZ()
-            );
+        if (stand == null || overwrite) {
+            stand = ARMOR_STAND_INSTANCE.invoke(craftWorld, location.getX(), location.getY(), location.getZ());
 
-            SET_INVISIBLE.invoke(armorStand, true);
-            SET_MARKER.invoke(armorStand, true);
-            NO_CLIP.set(armorStand, true);
+            SET_INVISIBLE.invoke(stand, true);
+            SET_MARKER.invoke(stand, true);
+            NO_CLIP.set(stand, true);
         }
         SET_LOCATION.invoke(
-                armorStand, location.getX(),
+                stand, location.getX(),
                 location.getY(), location.getZ(),
                 location.getYaw(), location.getPitch()
         );
 
-        new KRunnable(task -> {
-            ArmorStand bukkitStand = getEntity();
-            update(players, new ItemStack[] {
-                    bukkitStand.getItemInHand(),
-                    null,
-                    bukkitStand.getHelmet(),
-                    bukkitStand.getChestplate(),
-                    bukkitStand.getLeggings(),
-                    bukkitStand.getBoots()
+        Object spawnPacket = PACKET_LIVING_INSTANCE.invoke(stand);
 
-            }, rotate(rotations), true);
-        }).runTaskLaterAsynchronously(AsyncArmorStandTest.getMain(), 5L);
-
-        Object spawnPacket = PACKET_LIVING_INSTANCE.newInstance(
-                armorStand
+        Object dataWatcher = GET_DATA_WATCHER.invoke(stand);
+        Object metaPacket = XMaterial.getVersion() >= 19 ? PACKET_META_INSTANCE.invoke(
+                GET_ID.invoke(stand),
+                DATA_WATCHER_PACK_DIRTY.invoke(dataWatcher)
+        ) : PACKET_META_INSTANCE.invoke(
+                GET_ID.invoke(stand),
+                dataWatcher,
+                true
         );
-        players.forEach(p -> ReflectionUtils.sendPacket(p, spawnPacket));
+        players.forEach(p -> {
+            visibleTo.add(p);
+            ReflectionUtils.sendPacket(p, spawnPacket, metaPacket);
+        });
 
-        return (LivingEntity) GET_BUKKIT_ENTITY.invoke(armorStand);
+        ArmorStand bukkitStand = getEntity();
+        update(players, new ItemStack[] {
+                bukkitStand.getItemInHand(),
+                null,
+                bukkitStand.getHelmet(),
+                bukkitStand.getChestplate(),
+                bukkitStand.getLeggings(),
+                bukkitStand.getBoots()
+
+        }, rotate(rotations), true);
+
+        return (LivingEntity) GET_BUKKIT_ENTITY.invoke(stand);
     }
 
     @SneakyThrows
     @Override
     public void update(Collection<Player> players, ItemStack[] stack, boolean setData) {
-        update(players, stack, GET_DATA_WATCHER.invoke(armorStand), true);
+        update(players, stack, GET_DATA_WATCHER.invoke(stand), true);
     }
 
     @SneakyThrows
     @Override
     public void update(Collection<Player> players, ItemStack[] stack, Object dataWatcher, boolean setData) {
         Object[] packets = new Object[2];
-        packets[0] = XMaterial.getVersion() == 19 ? PACKET_META_INSTANCE.newInstance(
-                GET_ID.invoke(armorStand),
+        packets[0] = XMaterial.getVersion() >= 19 ? PACKET_META_INSTANCE.invoke(
+                GET_ID.invoke(stand),
                 DATA_WATCHER_PACK_DIRTY.invoke(dataWatcher)
-        ) : PACKET_META_INSTANCE.newInstance(
-                GET_ID.invoke(armorStand),
+        ) : PACKET_META_INSTANCE.invoke(
+                GET_ID.invoke(stand),
                 dataWatcher,
                 true
         );
@@ -322,8 +299,8 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
         for (int i = 0; i < 6; i++) {
             list.add(new Pair<>(getPair(i), AS_NMS_COPY.invoke(stack[i])));
         }
-        packets[setData ? 1 : 0] = PACKET_EQUIP_INSTANCE.newInstance(
-                GET_ID.invoke(armorStand), list
+        packets[setData ? 1 : 0] = PACKET_EQUIP_INSTANCE.invoke(
+                GET_ID.invoke(stand), list
         );
         players.forEach(p -> ReflectionUtils.sendPacket(p, packets));
     }
@@ -340,10 +317,10 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
     }
 
     @Override
-    public void move(Collection<Player> players, double x, double y, double z, float yaw, float pitch) {
+    public void move(Collection<Player> players, Location loc) {
         try {
-            SET_LOCATION.invoke(armorStand, x, y, z, yaw, pitch);
-            Object teleport = PACKET_TELEPORT_INSTANCE.newInstance(armorStand);
+            SET_LOCATION.invoke(stand, loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
+            Object teleport = PACKET_TELEPORT_INSTANCE.invoke(stand);
             players.forEach(p -> ReflectionUtils.sendPacket(p, teleport));
         } catch (Throwable ignored) {}
     }
@@ -351,7 +328,7 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
     @Override
     public ArmorStand getEntity() {
         try {
-            return (ArmorStand) GET_BUKKIT_ENTITY.invoke(armorStand);
+            return (ArmorStand) GET_BUKKIT_ENTITY.invoke(stand);
         } catch (Throwable e) {
             return null;
         }
@@ -360,7 +337,7 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
     @Override
     public Object rotate(float[][] rotations) {
         try {
-            DataWatcher data = (DataWatcher) GET_DATA_WATCHER.invoke(armorStand);
+            DataWatcher data = (DataWatcher) GET_DATA_WATCHER.invoke(stand);
             Object[] dataWatcherObjects = new Object[] {
                     HEAD, BODY, LEFT_ARM, RIGHT_ARM, LEFT_LEG, RIGHT_LEG
             };
@@ -370,7 +347,7 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
                 DATA_WATCHER_SET.invoke(
                         data,
                         dataWatcherObjects[i],
-                        VECTOR_3F_INSTANCE.newInstance(array[0], array[1], array[2])
+                        VECTOR_3F_INSTANCE.invoke(array[0], array[1], array[2])
                 );
             }
             return data;
@@ -383,15 +360,22 @@ public class UncollidableArmorStand_1_17 extends KBase implements UncollidableAr
     @SneakyThrows @Override
     public void destroy(Collection<Player> players) {
         // Either way I get a warning, why IntelliJ?
-        Object packet = PACKET_DESTROY_INSTANCE.newInstance((Object) new int[] {(int) GET_ID.invoke(armorStand)});
-        players.forEach(p -> ReflectionUtils.sendPacket(p, packet));
+        Object packet = PACKET_DESTROY_INSTANCE.invoke(new int[] {(int) GET_ID.invoke(stand)});
+        players.forEach(p -> {
+            visibleTo.remove(p);
+            ReflectionUtils.sendPacket(p, packet);
+        });
     }
 
-    public static boolean nineteenTwoOrBelow() {
-        return XMaterial.getVersion() == 18 || getSubVersion() < 3;
+    @Override
+    public Set<Player> getPlayersVisibleFor() {
+        return visibleTo;
     }
 
     public static int getSubVersion() {
-        return Integer.parseInt(Bukkit.getBukkitVersion().split("-")[0].split("\\.")[2]);
+        List<String> stuff = new ArrayList<>(Arrays.asList(
+                Bukkit.getBukkitVersion().split("-")[0].split("\\.")
+        ));
+        return Integer.parseInt(getOrDefault(stuff, 2, "0"));
     }
 }

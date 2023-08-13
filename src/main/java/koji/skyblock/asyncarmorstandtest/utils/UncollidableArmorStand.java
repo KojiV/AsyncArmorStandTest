@@ -1,7 +1,6 @@
-package koji.skyblock.asyncarmorstandtest;
+package koji.skyblock.asyncarmorstandtest.utils;
 
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -10,9 +9,10 @@ import org.bukkit.util.EulerAngle;
 
 import java.util.Collection;
 
-public interface UncollidableArmorStand {
-
-    void setup(World world);
+public interface UncollidableArmorStand extends PacketEntity {
+    @Override default void spawn(Collection<Player> players, Location loc) {
+        spawn(players, loc, true);
+    }
 
     default LivingEntity spawn(Collection<Player> players, boolean overwrite) {
         Location loc = getEntity().getLocation();
@@ -42,11 +42,16 @@ public interface UncollidableArmorStand {
     }
 
     LivingEntity spawn(Collection<Player> players, Location location, float[][] rotations, boolean overwrite);
+
+    @Override default void update(Collection<Player> players) {
+        update(players, true);
+    }
+
     default void update(Collection<Player> players, boolean setData) {
         ArmorStand stand = getEntity();
         update(players, new ItemStack[] {
                 stand.getItemInHand(),
-                stand.getItemInHand(),
+                null,
                 stand.getHelmet(),
                 stand.getChestplate(),
                 stand.getLeggings(),
@@ -57,7 +62,7 @@ public interface UncollidableArmorStand {
         ArmorStand stand = getEntity();
         update(players, new ItemStack[] {
                 stand.getItemInHand(),
-                stand.getItemInHand(),
+                null,
                 stand.getHelmet(),
                 stand.getChestplate(),
                 stand.getLeggings(),
@@ -68,7 +73,7 @@ public interface UncollidableArmorStand {
         ArmorStand stand = getEntity();
         update(players, new ItemStack[] {
                 stand.getItemInHand(),
-                stand.getItemInHand(),
+                null,
                 stand.getHelmet(),
                 stand.getChestplate(),
                 stand.getLeggings(),
@@ -77,15 +82,9 @@ public interface UncollidableArmorStand {
     }
     void update(Collection<Player> players, ItemStack[] stack, boolean setData);
     void update(Collection<Player> players, ItemStack[] stack, Object dataWatcher, boolean setData);
-    default void move(Collection<Player> players, Location loc) {
-        move(players, loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
-    }
-    void move(Collection<Player> players, double x, double y, double z, float yaw, float pitch);
     ArmorStand getEntity();
 
     Object rotate(float[][] rotations);
-
-    void destroy(Collection<Player> players);
 
     default float[] fromEulerAngle(EulerAngle angle) {
         return new float[] {

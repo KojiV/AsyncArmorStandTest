@@ -5,6 +5,9 @@ import koji.developerkit.runnable.KRunnable;
 import koji.developerkit.utils.SafeMap;
 import koji.developerkit.utils.xseries.XMaterial;
 import koji.skyblock.asyncarmorstandtest.armorstand.*;
+import koji.skyblock.asyncarmorstandtest.utils.EntityHider;
+import koji.skyblock.asyncarmorstandtest.utils.SkyblockWorld;
+import koji.skyblock.asyncarmorstandtest.utils.UncollidableArmorStand;
 import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -51,13 +54,13 @@ public final class AsyncArmorStandTest extends JavaPlugin implements Listener {
     }
 
     // For these, the first value is 1.8, second is 1.9+
-    static final double[] OFFSETS = { -0.7, -0.95 };
-    static final double[] ROTATIONS = { 0.54, -0.22 };
+    public static final double[] OFFSETS = { -0.7, -0.95 };
+    public static final double[] ROTATIONS = { 0.54, -0.22 };
 
     // This is mainly used for adjusting the armor stand to line up with the name tag.
     // Desmos came in clutch here, I hate math
-    static final double[] ADJUSTMENTS = { -0.135, 0.45 };
-    static final float[][] ARM_ANGLES = {
+    public static final double[] ADJUSTMENTS = { -0.135, 0.45 };
+    public static final float[][] ARM_ANGLES = {
             { 0, 40f, 0 },
             { 313f, 226f, 2.9f }
     };

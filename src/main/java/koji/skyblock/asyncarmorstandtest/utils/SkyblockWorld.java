@@ -1,6 +1,7 @@
-package koji.skyblock.asyncarmorstandtest;
+package koji.skyblock.asyncarmorstandtest.utils;
 
 import koji.developerkit.KBase;
+import koji.skyblock.asyncarmorstandtest.AsyncArmorStandTest;
 import lombok.Getter;
 import org.bukkit.*;
 import org.bukkit.block.Biome;

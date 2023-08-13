@@ -1,9 +1,7 @@
 package koji.skyblock.asyncarmorstandtest.armorstand;
 
-import koji.developerkit.runnable.KRunnable;
 import koji.developerkit.utils.xseries.ReflectionUtils;
-import koji.skyblock.asyncarmorstandtest.AsyncArmorStandTest;
-import koji.skyblock.asyncarmorstandtest.UncollidableArmorStand;
+import koji.skyblock.asyncarmorstandtest.utils.UncollidableArmorStand;
 import net.minecraft.server.v1_15_R1.*;
 import org.bukkit.Location;
 import org.bukkit.craftbukkit.v1_15_R1.CraftWorld;
@@ -15,16 +13,20 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 public class UncollidableArmorStand_1_15 implements UncollidableArmorStand {
     EntityArmorStand stand;
+    private final Set<Player> visibleTo;
+
+    public UncollidableArmorStand_1_15() {
+        visibleTo = new HashSet<>();
+    }
 
     @Override
     public void setup(org.bukkit.World world) {
-        stand = new EntityArmorStand(
-                EntityTypes.ARMOR_STAND,
-                ((CraftWorld) world).getHandle()
-        );
+        stand = new EntityArmorStand(EntityTypes.ARMOR_STAND, ((CraftWorld) world).getHandle());
         stand.setInvisible(true);
         stand.setMarker(true);
         stand.noclip = true;
@@ -33,31 +35,32 @@ public class UncollidableArmorStand_1_15 implements UncollidableArmorStand {
     @Override
     public LivingEntity spawn(Collection<Player> players, Location location, float[][] rotations, boolean overwrite) {
         if(stand == null || overwrite) {
-            stand = new EntityArmorStand(
-                    EntityTypes.ARMOR_STAND,
-                    ((CraftWorld) location.getWorld()).getHandle()
-            );
+            stand = new EntityArmorStand(EntityTypes.ARMOR_STAND, ((CraftWorld) location.getWorld()).getHandle());
             stand.setInvisible(true);
             stand.setMarker(true);
             stand.noclip = true;
         }
         stand.setLocation(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
 
-        new KRunnable(task -> {
-            ArmorStand bukkitStand = getEntity();
-            update(players, new ItemStack[] {
-                    bukkitStand.getItemInHand(),
-                    null,
-                    bukkitStand.getHelmet(),
-                    bukkitStand.getChestplate(),
-                    bukkitStand.getLeggings(),
-                    bukkitStand.getBoots()
-
-            }, rotate(rotations), true);
-        }).runTaskLaterAsynchronously(AsyncArmorStandTest.getMain(), 5L);
-
         PacketPlayOutSpawnEntityLiving packet = new PacketPlayOutSpawnEntityLiving(stand);
-        players.forEach(p -> ((CraftPlayer) p).getHandle().playerConnection.sendPacket(packet));
+        PacketPlayOutEntityMetadata test = new PacketPlayOutEntityMetadata(
+                stand.getId(), stand.getDataWatcher(), true
+        );
+        players.forEach(p -> {
+            visibleTo.add(p);
+            ReflectionUtils.sendPacket(p, packet, test);
+        });
+
+        ArmorStand bukkitStand = getEntity();
+        update(players, new ItemStack[] {
+                bukkitStand.getItemInHand(),
+                null,
+                bukkitStand.getHelmet(),
+                bukkitStand.getChestplate(),
+                bukkitStand.getLeggings(),
+                bukkitStand.getBoots()
+
+        }, rotate(rotations), true);
 
         return (LivingEntity) stand.getBukkitEntity();
     }
@@ -93,8 +96,8 @@ public class UncollidableArmorStand_1_15 implements UncollidableArmorStand {
     }
 
     @Override
-    public void move(Collection<Player> players, double x, double y, double z, float yaw, float pitch) {
-        stand.setLocation(x, y, z, yaw, pitch);
+    public void move(Collection<Player> players, Location loc) {
+        stand.setLocation(loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
         PacketPlayOutEntityTeleport teleport = new PacketPlayOutEntityTeleport(stand);
         players.forEach(p -> ((CraftPlayer) p).getHandle().playerConnection.sendPacket(teleport));
     }
@@ -106,18 +109,18 @@ public class UncollidableArmorStand_1_15 implements UncollidableArmorStand {
 
     @Override @SuppressWarnings("unchecked")
     public Object rotate(float[][] rotations) {
-        DataWatcher data = new DataWatcher(stand);
+        DataWatcher data = stand.getDataWatcher();
         DataWatcherObject<Vector3f>[] labels = new DataWatcherObject[] {
-                EntityArmorStand.b, // Head
-                EntityArmorStand.c, // Body
-                EntityArmorStand.d, // Left Arm
-                EntityArmorStand.e, // Right Arm
-                EntityArmorStand.f, // Left Leg
-                EntityArmorStand.g // Right Leg
+                EntityArmorStand.c, // Head
+                EntityArmorStand.d, // Body
+                EntityArmorStand.e, // Left Arm
+                EntityArmorStand.f, // Right Arm
+                EntityArmorStand.g, // Left Leg
+                EntityArmorStand.bp // Right Leg
         };
         for(int i = 0; i < 6; i++) {
             float[] array = rotations[i];
-            data.register(labels[i], new Vector3f(array[0], array[1], array[2]));
+            data.set(labels[i], new Vector3f(array[0], array[1], array[2]));
         }
         return data;
     }
@@ -125,6 +128,14 @@ public class UncollidableArmorStand_1_15 implements UncollidableArmorStand {
     @Override
     public void destroy(Collection<Player> players) {
         PacketPlayOutEntityDestroy packet = new PacketPlayOutEntityDestroy(stand.getId());
-        players.forEach(p -> ((CraftPlayer) p).getHandle().playerConnection.sendPacket(packet));
+        players.forEach(p -> {
+            visibleTo.remove(p);
+            ((CraftPlayer) p).getHandle().playerConnection.sendPacket(packet);
+        });
+    }
+
+    @Override
+    public Set<Player> getPlayersVisibleFor() {
+        return visibleTo;
     }
 }
