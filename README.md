@@ -114,7 +114,7 @@ Spawn can be called with many things, but the main method:
     - 5: Right leg rotation
   - **boolean** to represent whether to override the entity with a whole new one or not.
 
-See example from setup to see how spawn is used.
+See example from [setup](https://github.com/KojiV/AsyncArmorStandTest#setup) to see how spawn is used.
 
 ### Update
 Update is a method used to tell a group of players that the armor stand has changed elements of its metadata or equipment. Because the server doesn't actually know that the armor stand exists, the server will not change the metadata for you, so the sending of the update method (which sends a packet) is required.
@@ -123,7 +123,7 @@ Update can be called with multiple things, but the main method uses
 - **Collection<Player>** to represent the players that will receive the armor stand update.
 - **org.bukkit.inventory.ItemStack[]** to represent the equipment the armor stand will wear. The order goes like this:
   - Main hand
-  - Offhand (this won't do anything for an armor stand)
+  - Offhand 
   - Helmet
   - Chestplate
   - Leggings
@@ -183,7 +183,7 @@ The rotate method:
 ArmorStand stand = getEntity();
 update(players, new ItemStack[] {
         stand.getItemInHand(),
-        stand.getItemInHand(),
+        null,
         stand.getHelmet(),
         stand.getChestplate(),
         stand.getLeggings(),
